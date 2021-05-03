@@ -55,6 +55,10 @@ DNS_RESOLVER () {
 	echo -e ${BLUE}"[DNS RESOLVER]" ${RED}"dnsx installation in progress ...";
 	GO111MODULE=on go get -v github.com/projectdiscovery/dnsx/cmd/dnsx > /dev/null 2>&1 && ln -s ~/go/bin/dnsx /usr/local/bin/;
 	echo -e ${BLUE}"[DNS RESOLVER]" ${GREEN}"dnsx installation is done !"; echo "";
+	#PureDNS
+	echo -e ${BLUE}"[DNS RESOLVER]" ${RED}"PureDNS installation in progress ...";
+	GO111MODULE=on go get github.com/d3mondev/puredns/v2 > /dev/null 2>&1 && ln -s ~/go/bin/puredns /usr/local/bin;
+	echo -e ${BLUE}"[DNS RESOLVER]" ${GREEN}"PureDNS installation is done !"; echo "";
 }
 
 VISUAL_RECON () {
