@@ -26,7 +26,7 @@ fi
 unset OS
 
 #Creating tools directory if not exist
-source ./env && mkdir -p $TOOLS_DIRECTORY;
+source ./.env && mkdir -p $TOOLS_DIRECTORY;
 
 ENVIRONMENT () {
 	#Python and some packages
