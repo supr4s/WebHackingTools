@@ -12,8 +12,8 @@ if [ "$OS" == "Debian" ]; then
 	#Specific Debian
 	#chromium
 	apt-get update -y > /dev/null 2>&1 && apt-get install chromium > /dev/null 2>&1
-    	#Specific Ubuntu
 elif [ "$OS" == "Ubuntu" ]; then
+	#Specific Ubuntu
 	#chromium
         apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser > /dev/null 2>&1
 	#Bash colors
