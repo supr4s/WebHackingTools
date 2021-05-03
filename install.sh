@@ -29,15 +29,15 @@ unset OS
 source ./env && mkdir -p $TOOLS_DIRECTORY;
 
 ENVIRONMENT () {
+	#Python and some packages
+	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
+	apt-get update > /dev/null 2>&1 && apt-get install -y python python3 python3-pip git unzip make gcc libpcap-dev curl > /dev/null 2>&1;
+	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py;
+	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
 	#Golang
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Golang environment installation in progress ...";
 	cd /tmp && curl -O https://dl.google.com/go/go$GOVER.linux-amd64.tar.gz > /dev/null 2>&1 && tar xvf go$GOVER.linux-amd64.tar.gz > /dev/null 2>&1 && mv go /usr/local && echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc && source ~/.bashrc;
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Golang environment installation is done !"; echo "";
-	#Python and some packages
-	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
-	apt-get update > /dev/null 2>&1 && apt-get install -y python python3 python3-pip git unzip make gcc libpcap-dev > /dev/null 2>&1;
-	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py;
-	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
 }
 
 SUBDOMAINS_ENUMERATION () {
