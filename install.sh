@@ -89,7 +89,7 @@ VISUAL_RECON () {
 	echo -e ${BLUE}"[VISUAL RECON]" ${GREEN}"Aquatone installation is done !"; echo "";
 	#Gowitness
 	echo -e ${BLUE}"[VISUAL RECON]" ${RED}"Gowitness installation in progress ...";
-	cd /tmp && wget https://github.com/sensepost/gowitness/releases/download/2.3.4/gowitness-$GOWITNESSVER-linux-amd64 > /dev/null 2>&1 && mv gowitness-$GOWITNESSVER-linux-amd64 /usr/local/bin/;
+	cd /tmp && wget https://github.com/sensepost/gowitness/releases/download/2.3.4/gowitness-$GOWITNESSVER-linux-amd64 > /dev/null 2>&1 && mv gowitness-$GOWITNESSVER-linux-amd64 /usr/local/bin/gowitness && chmod +x /usr/local/bin/gowitness;
 	echo -e ${BLUE}"[VISUAL RECON]" ${GREEN}"Gowitness installation is done !"; echo "";
 }
 
