@@ -6,6 +6,8 @@ if [ "$EUID" -ne 0 ]
 fi
 #Creating tools directory if not exist
 source ./env && mkdir -p $TOOLS_DIRECTORY;
+#To have colors
+sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
 
 ENVIRONMENT () {
 	#Golang
