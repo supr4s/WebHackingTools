@@ -6,8 +6,25 @@ if [ "$EUID" -ne 0 ]
 fi
 #Creating tools directory if not exist
 source ./env && mkdir -p $TOOLS_DIRECTORY;
-#To have colors
-sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
+#Check Operating System
+OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
+# If Linux, try to determine specific distribution
+if [ "$OS" == "Debian" ]; then
+	#Specific Debian
+	#chromium
+	apt-get update -y > /dev/null 2>&1 && apt-get install chromium > /dev/null 2>&1
+    	#Specific Ubuntu
+elif [ "$OS" == "Ubuntu" ]; then
+	#chromium
+        apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser > /dev/null 2>&1
+	#Bash colors
+	sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
+else
+        echo "O.S unrecognized";
+        echo "End of the script";
+        exit
+fi
+unset OS
 
 ENVIRONMENT () {
 	#Golang
@@ -16,7 +33,7 @@ ENVIRONMENT () {
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Golang environment installation is done !"; echo "";
 	#Python and some packages
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
-	apt-get update > /dev/null 2>&1 && apt-get install -y python python3 python3-pip git chromium unzip make gcc libpcap-dev > /dev/null 2>&1;
+	apt-get update > /dev/null 2>&1 && apt-get install -y python python3 python3-pip git unzip make gcc libpcap-dev > /dev/null 2>&1;
 	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py;
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
 }
