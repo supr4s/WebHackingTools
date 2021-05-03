@@ -4,8 +4,7 @@ if [ "$EUID" -ne 0 ]
   then echo -e ${RED}"Please execute this script with root privileges !"
   exit
 fi
-#Creating tools directory if not exist
-source ./env && mkdir -p $TOOLS_DIRECTORY;
+
 #Check Operating System
 OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
 # If Linux, try to determine specific distribution
@@ -25,6 +24,9 @@ else
         exit
 fi
 unset OS
+
+#Creating tools directory if not exist
+source ./env && mkdir -p $TOOLS_DIRECTORY;
 
 ENVIRONMENT () {
 	#Golang
