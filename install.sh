@@ -85,7 +85,7 @@ DNS_RESOLVER () {
 VISUAL_RECON () {
 	#Aquatone
 	echo -e ${BLUE}"[VISUAL RECON]" ${RED}"Aquatone installation in progress ...";
-	cd /tmp && wget https://github.com/michenriksen/aquatone/releases/download/v$AQUATONEVER/aquatone_linux_amd64_$AQUATONEVER.zip > /dev/null 2>&1 && unzip aquatone_linux_amd64_$AQUATONEVER.zip && mv aquatone /usr/local/bin/;
+	cd /tmp && wget https://github.com/michenriksen/aquatone/releases/download/v$AQUATONEVER/aquatone_linux_amd64_$AQUATONEVER.zip > /dev/null 2>&1 && unzip aquatone_linux_amd64_$AQUATONEVER.zip > /dev/null 2>&1 && mv aquatone /usr/local/bin/;
 	echo -e ${BLUE}"[VISUAL RECON]" ${GREEN}"Aquatone installation is done !"; echo "";
 	#Gowitness
 	echo -e ${BLUE}"[VISUAL RECON]" ${RED}"Gowitness installation in progress ...";
