@@ -9,7 +9,6 @@ fi
 source ./.env && mkdir -p $TOOLS_DIRECTORY;
 
 ENVIRONMENT () {
-	#Python and some packages
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
 	#Check Operating System
 	OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
@@ -31,6 +30,7 @@ ENVIRONMENT () {
 	fi
 unset OS
 	#Generic fot both OS
+	#Python and some packages
 	apt-get update > /dev/null 2>&1 && apt-get install -y python python3 python3-pip git unzip make gcc libpcap-dev curl > /dev/null 2>&1;
 	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
