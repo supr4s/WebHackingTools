@@ -31,7 +31,7 @@ ENVIRONMENT () {
 unset OS
 	#Generic fot both OS
 	#Python and some packages
-	apt-get update > /dev/null 2>&1 && apt-get install -y python python3 python3-pip git unzip make gcc libpcap-dev curl > /dev/null 2>&1;
+	apt-get install -y python python3 python3-pip git unzip make gcc libpcap-dev curl > /dev/null 2>&1;
 	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
 	#Golang
