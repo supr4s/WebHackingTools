@@ -230,7 +230,7 @@ USEFUL_TOOLS () {
 	#Ripgrep
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Ripgrep installation in progress ...";
 	apt-get install -y ripgrep > /dev/null 2>&1
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Ripgrep installation is done !"; echo "";
+	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Ripgrep installation is done !" ${RESET}; echo "";
 }
 
 ENVIRONMENT && SUBDOMAINS_ENUMERATION && DNS_RESOLVER && VISUAL_RECON && HTTP_PROBE && WEB_CRAWLING && NETWORK_SCANNER && HTTP_PARAMETER && FUZZING_TOOLS && WORDLISTS && VULNS_XSS && VULNS_SQLI && VULNS_SCANNER && JS_HUNTING && USEFUL_TOOLS;
