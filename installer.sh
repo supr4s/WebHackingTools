@@ -7,6 +7,7 @@ fi
 
 #Creating tools directory if not exist
 source ./.env && mkdir -p $TOOLS_DIRECTORY;
+clear;
 
 ENVIRONMENT () {
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
