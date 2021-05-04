@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -i
 #Check if the script is executed with root privileges
 if [ "$EUID" -ne 0 ]
   then echo -e ${RED}"Please execute this script with root privileges !"
