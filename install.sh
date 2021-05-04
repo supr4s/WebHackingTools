@@ -5,32 +5,32 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-#Check Operating System
-OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
-# If Linux, try to determine specific distribution
-if [ "$OS" == "Debian" ]; then
-	#Specific Debian
-	#chromium
-	apt-get update -y > /dev/null 2>&1 && apt-get install chromium -y > /dev/null 2>&1
-elif [ "$OS" == "Ubuntu" ]; then
-	#Specific Ubuntu
-	#chromium
-        apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser -y > /dev/null 2>&1
-	#Bash colors
-	sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
-else
-        echo "O.S unrecognized";
-        echo "End of the script";
-        exit
-fi
-unset OS
-
 #Creating tools directory if not exist
 source ./.env && mkdir -p $TOOLS_DIRECTORY;
 
 ENVIRONMENT () {
 	#Python and some packages
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
+	#Check Operating System
+	OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
+	# If Linux, try to determine specific distribution
+	if [ "$OS" == "Debian" ]; then
+		#Specific Debian
+		#chromium
+		apt-get update -y > /dev/null 2>&1 && apt-get install chromium -y > /dev/null 2>&1
+	elif [ "$OS" == "Ubuntu" ]; then
+		#Specific Ubuntu
+		#chromium
+        	apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser -y > /dev/null 2>&1
+		#Bash colors
+		sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
+	else
+        	echo "O.S unrecognized";
+        	echo "End of the script";
+        exit
+	fi
+unset OS
+	#Generic fot both OS
 	apt-get update > /dev/null 2>&1 && apt-get install -y python python3 python3-pip git unzip make gcc libpcap-dev curl > /dev/null 2>&1;
 	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
