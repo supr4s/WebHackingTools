@@ -11,11 +11,11 @@ OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
 if [ "$OS" == "Debian" ]; then
 	#Specific Debian
 	#chromium
-	apt-get update -y > /dev/null 2>&1 && apt-get install chromium > /dev/null 2>&1
+	apt-get update -y > /dev/null 2>&1 && apt-get install chromium -y > /dev/null 2>&1
 elif [ "$OS" == "Ubuntu" ]; then
 	#Specific Ubuntu
 	#chromium
-        apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser > /dev/null 2>&1
+        apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser -y > /dev/null 2>&1
 	#Bash colors
 	sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
 else
