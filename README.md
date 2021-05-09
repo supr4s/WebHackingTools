@@ -1,6 +1,6 @@
 # VPS-web-hacking-tools
 
-Automatically install some web hacking/bug bounty tools.
+Automatically install some web hacking/bug bounty tools for your VPS.
 
 O.S supported : 
 
