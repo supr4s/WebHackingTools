@@ -87,4 +87,5 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 - [getallurls](https://github.com/lc/hacks/tree/master/getallurls)
 - [gron](https://github.com/tomnomnom/gron)
 - [Interlace](https://github.com/codingo/Interlace)
+- [Tmux](https://github.com/tmux/tmux)
 - [Ripgrep](https://github.com/BurntSushi/ripgrep)
