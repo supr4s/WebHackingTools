@@ -80,7 +80,7 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 - [SecretFinder](https://github.com/m4ll0k/SecretFinder)
 - [subjs](https://github.com/lc/subjs)
 
-### Useful tools
+### Useful tools
 
 - [anti-burl](https://github.com/tomnomnom/hacks/tree/master/anti-burl)
 - [getallurls](https://github.com/lc/hacks/tree/master/getallurls)
