@@ -7,7 +7,9 @@ O.S supported :
 - Ubuntu 20.04 x64
 - Debian 10 x64
 
+
 [![asciicast](https://asciinema.org/a/BUcUNELm2BspnEIdHoFXQPyHY.svg)](https://asciinema.org/a/BUcUNELm2BspnEIdHoFXQPyHY)
+
 
 
 ## Installation 
