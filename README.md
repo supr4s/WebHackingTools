@@ -5,5 +5,5 @@ Automatically install most web hacking/bug bounty tools.
 ## Installation 
 
 ```
-git clone xxx
+cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-web-hacking-tools && bash ./installer.sh
 ```
