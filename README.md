@@ -4,8 +4,8 @@ Automatically install some web hacking/bug bounty tools.
 
 O.S supported : 
 
--Ubuntu 20.04 x64
--Debian 10 x64 
+- Ubuntu 20.04 x64
+- Debian 10 x64 
 
 ## Installation 
 
