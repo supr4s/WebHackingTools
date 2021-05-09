@@ -227,6 +227,10 @@ USEFUL_TOOLS () {
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Interlace installation in progress ...";
 	cd $TOOLS_DIRECTORY && git clone https://github.com/codingo/Interlace.git > /dev/null 2>&1 && cd Interlace && python3 setup.py install > /dev/null 2>&1;
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Interlace installation is done !"; echo "";
+	#Tmux
+	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Tmux installation in progress ...";
+	apt-get install tmux -y > /dev/null 2>&1;
+	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Tmux installation is done !"; echo "";
 	#Ripgrep
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Ripgrep installation in progress ...";
 	apt-get install -y ripgrep > /dev/null 2>&1
