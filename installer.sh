@@ -13,7 +13,6 @@ ENVIRONMENT () {
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
 	#Check Operating System
 	OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
-	# If Linux, try to determine specific distribution
 	if [ "$OS" == "Debian" ]; then
 		#Specific Debian
 		#chromium
