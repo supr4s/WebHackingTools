@@ -91,3 +91,8 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 - [Interlace](https://github.com/codingo/Interlace)
 - [Tmux](https://github.com/tmux/tmux)
 - [Ripgrep](https://github.com/BurntSushi/ripgrep)
+
+### Note
+
+- Refer to the usage of the tools as most of them require configuration (especially for subdomain enumeration).
+- Please be careful with these tools and only use them on targets you have explicitly authorized.
