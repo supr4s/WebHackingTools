@@ -8,7 +8,7 @@ O.S supported :
 - Debian 10 x64
 
 
-[![asciicast](https://asciinema.org/a/BUcUNELm2BspnEIdHoFXQPyHY.svg)](https://asciinema.org/a/BUcUNELm2BspnEIdHoFXQPyHY)
+[![asciicast](https://asciinema.org/a/ZjvDJJ6ZJsQvk4tuUbplaTf8a.svg)](https://asciinema.org/a/ZjvDJJ6ZJsQvk4tuUbplaTf8a)
 
 
 
