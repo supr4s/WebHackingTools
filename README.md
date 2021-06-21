@@ -65,6 +65,16 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 - [ffuf](https://github.com/ffuf/ffuf)
 - [Gobuster](https://github.com/OJ/gobuster)
 
+### SSRF tools
+
+- [SSRFmap](https://github.com/swisskyrepo/SSRFmap) *
+- [Gopherus](https://github.com/tarunkant/Gopherus) *
+- [Interactsh](https://github.com/projectdiscovery/interactsh) *
+
+### API hacking tools
+
+- [Kiterunner + API routes](https://github.com/assetnote/kiterunner) *
+
 ### Wordlists
 
 - [SecLists](https://github.com/danielmiessler/SecLists)
@@ -79,6 +89,12 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 
 - [NoSQLMap](https://github.com/codingo/NoSQLMap)
 - [SQLMap](https://github.com/sqlmapproject/sqlmap)
+
+### CMS Scanner
+
+- [WPscan](https://github.com/wpscanteam/wpscan) *
+- [droopescan](https://github.com/droope/droopescan) *
+- [AEM-Hacker](https://github.com/0ang3el/aem-hacker) *
 
 ### Vulns - Scanner
 
@@ -96,6 +112,10 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 - [anti-burl](https://github.com/tomnomnom/hacks/tree/master/anti-burl)
 - [getallurls](https://github.com/lc/hacks/tree/master/getallurls)
 - [gron](https://github.com/tomnomnom/gron)
+- [anti-burl](https://github.com/tomnomnom/hacks/tree/master/anti-burl) *
+- [unfurl](https://github.com/tomnomnom/unfurl) *
+- [anew](https://github.com/tomnomnom/anew) *
+- [qsreplace](https://github.com/tomnomnom/qsreplace) *
 - [Interlace](https://github.com/codingo/Interlace)
 - [Tmux](https://github.com/tmux/tmux)
 - [Ripgrep](https://github.com/BurntSushi/ripgrep)
@@ -104,3 +124,5 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 
 - Refer to the usage of the tools as most of them require configuration (especially for subdomains enumeration).
 - Please be careful with these tools and only use them on targets you have explicitly authorized.
+
+N.B : * = added in the last update
