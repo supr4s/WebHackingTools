@@ -17,7 +17,7 @@ ENVIRONMENT () {
 		#Specific Debian
 		#chromium
 		apt-get update -y > /dev/null 2>&1 && apt-get install chromium -y > /dev/null 2>&1
-	elif [ "$OS" == "Ubuntu" ]; then
+	elif [ "$OS" == "Ubuntu" -o "$OS" == "Linuxmint" ]; then
 		#Specific Ubuntu
 		#chromium
         	apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser -y > /dev/null 2>&1
