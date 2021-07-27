@@ -6,6 +6,7 @@ O.S supported :
 
 - Ubuntu 20.04 x64
 - Debian 10 x64
+- Linux Mint 20.2 x64
 
 
 [![asciicast](https://asciinema.org/a/ZjvDJJ6ZJsQvk4tuUbplaTf8a.svg)](https://asciinema.org/a/ZjvDJJ6ZJsQvk4tuUbplaTf8a)
