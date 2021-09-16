@@ -23,6 +23,7 @@ cd /tmp && git clone https://github.com/supr4s/VPS-web-hacking-tools && cd VPS-w
 
 ### Subdomains enumeration
 
+- [Subfinder](https://github.com/projectdiscovery/subfinder)
 - [Amass](https://github.com/OWASP/Amass)
 - [Assetfinder](https://github.com/tomnomnom/assetfinder)
 - [Crobat](https://github.com/Cgboal/SonarSearch)
