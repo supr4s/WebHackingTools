@@ -13,28 +13,37 @@ ENVIRONMENT () {
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
 	#Check Operating System
 	OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
-	if [ "$OS" == "Debian" ]; then
+	if [ "$OS" == "Debian" ] || [ "$OS" == "Linuxmint" ]; then
 		#Specific Debian
 		#chromium
-		apt-get update -y > /dev/null 2>&1 && apt-get install chromium -y > /dev/null 2>&1
+		apt-get update -y > /dev/null 2>&1;
+		apt-get install chromium python python3 python3-pip unzip make gcc libpcap-dev curl build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev ruby-dev ruby libgmp-dev zlib1g-dev -y > /dev/null 2>&1;
+		cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
 	elif [ "$OS" == "Ubuntu" ]; then
 		#Specific Ubuntu
-		#chromium
-        	apt-get update -y > /dev/null 2>&1 && apt-get install chromium-browser -y > /dev/null 2>&1
-		#Bash colors
-		sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
+		#Specificity : chromium-browser replace chromium
+        apt-get update -y > /dev/null 2>&1
+        apt-get install chromium-browser python python3 python3-pip unzip make gcc libpcap-dev curl build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev ruby-dev ruby libgmp-dev zlib1g-dev -y > /dev/null 2>&1;
+        cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
+	elif [ "$OS" == "Kali" ]; then
+		#Specific Kali Linux
+		#Specificity : no package name with "python"
+        apt-get update -y > /dev/null 2>&1;
+        apt-get install chromium python3 python3-pip unzip make gcc libpcap-dev curl build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev ruby-dev ruby libgmp-dev zlib1g-dev -y > /dev/null 2>&1;
+        cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
+        pip install -U setuptools > /dev/null 2>&1;
+        #Needed for NoSQLMap
+        pip install couchdb pbkdf2 pymongo ipcalc > /dev/null 2>&1;    
 	else
-        	echo "O.S unrecognized";
-        	echo "End of the script";
-        exit
+        echo "OS unrecognized. Please check the compatibility with your system.";
+        echo "End of the script";
+        exit;
 	fi
 unset OS
-	#Generic fot both OS
-	#Python and some packages
-	apt-get install -y python python3 python3-pip unzip make gcc libpcap-dev curl build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev ruby-dev ruby libgmp-dev zlib1g-dev > /dev/null 2>&1;
-	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
+	#Bash colors
+	sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
-	#Golang
+	#Generic fot both OS - Golang environment
 	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Golang environment installation in progress ...";
 	cd /tmp && curl -O https://dl.google.com/go/go$GOVER.linux-amd64.tar.gz > /dev/null 2>&1 && tar xvf go$GOVER.linux-amd64.tar.gz > /dev/null 2>&1 && mv go /usr/local && echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc && source ~/.bashrc;
 	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Golang environment installation is done !"; echo "";
@@ -63,7 +72,7 @@ SUBDOMAINS_ENUMERATION () {
 	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Amass installation is done !"; echo "";
 	#Crobat
 	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Crobat installation in progress ...";
-	go get github.com/cgboal/sonarsearch/crobat > /dev/null 2>&1 && ln -s ~/go/bin/crobat /usr/local/bin/;
+	go get github.com/cgboal/sonarsearch/cmd/crobat > /dev/null 2>&1 && ln -s ~/go/bin/crobat /usr/local/bin/;
 	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Crobat installation is done !"; echo "";
 }
 
@@ -135,6 +144,10 @@ HTTP_PARAMETER () {
 	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${RED}"Arjun installation in progress ...";
 	pip3 install arjun > /dev/null 2>&1;
 	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${GREEN}"Arjun installation is done !"; echo "";
+	#x8
+	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${RED}"x8 installation in progress ...";
+	cd /tmp && wget https://github.com/Sh1Yo/x8/releases/download/v"$X8VER"/x8_linux.tar.gz > /dev/null 2>&1 && tar -zxvf x8_linux.tar.gz > /dev/null 2>&1 && mv x8 /usr/local/bin/x8;
+	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${GREEN}"x8 installation is done !"; echo "";
 }
 
 FUZZING_TOOLS () {
@@ -142,10 +155,21 @@ FUZZING_TOOLS () {
 	echo -e ${BLUE}"[FUZZING TOOLS]" ${RED}"ffuf installation in progress ...";
 	go get -u github.com/ffuf/ffuf > /dev/null 2>&1 && ln -s ~/go/bin/ffuf /usr/local/bin/;
 	echo -e ${BLUE}"[FUZZING TOOLS]" ${GREEN}"ffuf installation is done !"; echo "";
-	#masscan
+	#gobuster
 	echo -e ${BLUE}"[FUZZING TOOLS]" ${RED}"Gobuster installation in progress ...";
 	go install github.com/OJ/gobuster/v3@latest > /dev/null 2>&1 && ln -s ~/go/bin/gobuster /usr/local/bin/;
 	echo -e ${BLUE}"[FUZZING TOOLS]" ${GREEN}"Gobuster installation is done !"; echo "";
+	#wfuzz
+	echo -e ${BLUE}"[FUZZING TOOLS]" ${RED}"wfuzz installation in progress ...";
+	apt-get install wfuzz -y > /dev/null 2>&1;
+	echo -e ${BLUE}"[FUZZING TOOLS]" ${GREEN}"wfuzz installation is done !"; echo "";
+}
+
+LFI_TOOLS () {
+	#LFISuite
+	echo -e ${BLUE}"[LFI TOOLS]" ${RED}"LFISuite installation in progress ...";
+	cd $TOOLS_DIRECTORY && git clone https://github.com/D35m0nd142/LFISuite.git > /dev/null 2>&1;
+	echo -e ${BLUE}"[LFI TOOLS]" ${GREEN}"LFISuite installation is done !"; echo "";
 }
 
 SSRF_TOOLS () {
@@ -163,6 +187,13 @@ SSRF_TOOLS () {
 	echo -e ${BLUE}"[SSRF TOOLS]" ${GREEN}"Interactsh installation is done !"; echo "";
 }
 
+SSTI_TOOLS () {
+	#tplmap
+	echo -e ${BLUE}"[SSTI TOOLS]" ${RED}"tplmap installation in progress ...";
+	cd $TOOLS_DIRECTORY && git clone https://github.com/epinna/tplmap.git > /dev/null 2>&1 && cd tplmap && pip install -r requirements.txt > /dev/null 2>&1;
+	echo -e ${BLUE}"[SSTI TOOLS]" ${GREEN}"tplmap installation is done !"; echo "";
+}
+
 API_TOOLS () {
 	#Kiterunner
 	echo -e ${BLUE}"[API TOOLS]" ${RED}"Kiterunner installation in progress ...";
@@ -170,6 +201,7 @@ API_TOOLS () {
 	cd $TOOLS_DIRECTORY && mkdir -p kiterunner-wordlists && cd kiterunner-wordlists && wget https://wordlists-cdn.assetnote.io/data/kiterunner/routes-large.kite.tar.gz > /dev/null 2>&1 && wget https://wordlists-cdn.assetnote.io/data/kiterunner/routes-small.kite.tar.gz > /dev/null 2>&1 && for f in *.tar.gz; do tar xf "$f"; rm -Rf "$f"; done
 	echo -e ${BLUE}"[API TOOLS]" ${GREEN}"Kiterunner installation is done !"; echo "";
 }
+
 
 WORDLISTS () {
 	#SecLists
@@ -211,7 +243,7 @@ CMS_SCANNER () {
 	echo -e ${BLUE}"[CMS SCANNER]" ${GREEN}"WPScan installation is done !"; echo "";
 	#Droopescan
 	echo -e ${BLUE}"[CMS SCANNER]" ${RED}"Droopescan installation in progress ...";
-	pip install droopescan > /dev/null 2>&1;
+	pip3 install droopescan > /dev/null 2>&1;
 	echo -e ${BLUE}"[CMS SCANNER]" ${GREEN}"Droopescan installation is done !"; echo "";
 	#AEM-Hacking
 	echo -e ${BLUE}"[CMS SCANNER]" ${RED}"AEM-Hacking installation in progress ...";
@@ -223,13 +255,17 @@ VULNS_SCANNER () {
 	#Nuclei + nuclei templates
 	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${RED}"Nuclei installation in progress ...";
 	GO111MODULE=on go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei > /dev/null 2>&1 && ln -s ~/go/bin/nuclei /usr/local/bin/;
-	nuclei -update-templates > /dev/null 2>&1
+	nuclei -update-templates > /dev/null 2>&1;
 	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${GREEN}"Nuclei installation is done !"; echo "";
 	#Jaeles
 	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${RED}"Jaeles installation in progress ...";
 	GO111MODULE=on go get github.com/jaeles-project/jaeles  > /dev/null 2>&1 && ln -s ~/go/bin/jaeles /usr/local/bin/;
 	cd $TOOLS_DIRECTORY && git clone https://github.com/jaeles-project/jaeles-signatures.git > /dev/null 2>&1;
 	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${GREEN}"Jaeles installation is done !"; echo "";
+	#Nikto
+	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${RED}"Nikto installation in progress ...";
+	apt-get install -y nikto > /dev/null 2>&1;
+	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${GREEN}"Nikto installation is done !"; echo "";
 }
 
 JS_HUNTING () {
@@ -245,6 +281,41 @@ JS_HUNTING () {
 	echo -e ${BLUE}"[JS FILES HUNTING]" ${RED}"subjs installation in progress ...";
 	go get -u github.com/lc/subjs > /dev/null 2>&1 && ln -s ~/go/bin/subjs /usr/local/bin/;
 	echo -e ${BLUE}"[JS FILES HUNTING]" ${GREEN}"subjs installation is done !"; echo "";
+}
+
+GIT_HUNTING() {
+	#GitDorker
+	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"gitGraber installation in progress ...";
+	cd $TOOLS_DIRECTORY && git clone https://github.com/obheda12/GitDorker.git > /dev/null 2>&1 && cd GitDorker && pip3 install -r requirements.txt > /dev/null 2>&1;
+	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"gitGraber installation is done !"; echo "";
+	#gitGraber
+	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"gitGraber installation in progress ...";
+	cd $TOOLS_DIRECTORY && git clone https://github.com/hisxo/gitGraber.git > /dev/null 2>&1 && cd gitGraber && pip3 install -r requirements.txt > /dev/null 2>&1;
+	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"gitGraber installation is done !"; echo "";
+	#GitHacker
+	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"GitHacker installation in progress ...";
+	pip3 install GitHacker > /dev/null 2>&1;
+	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"GitHacker installation is done !"; echo "";
+	#GitTools
+	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"GitToolsinstallation in progress ...";
+	cd $TOOLS_DIRECTORY && git clone https://github.com/internetwache/GitTools.git > /dev/null 2>&1;
+	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"GitTools installation is done !"; echo "";
+}
+
+
+SENSITIVE_FINDING() {
+	#DumpsterDiver
+	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${RED}"gitGraber installation in progress ...";
+	cd $TOOLS_DIRECTORY && git clone https://github.com/securing/DumpsterDiver.git > /dev/null 2>&1 && cd DumpsterDiver && pip3 install -r requirements.txt > /dev/null 2>&1;
+	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${GREEN}"gitGraber installation is done !"; echo "";
+	#EarlyBird
+	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${RED}"EarlyBird installation in progress ...";
+	cd $TOOLS_DIRECTORY && git clone https://github.com/americanexpress/earlybird.git > /dev/null 2>&1 && cd earlybird && ./build.sh > /dev/null 2>&1 && ./install.sh > /dev/null 2>&1;
+	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${GREEN}"EarlyBird installation is done !"; echo "";
+	#Ripgrep
+	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${RED}"Ripgrep installation in progress ...";
+	apt-get install -y ripgrep > /dev/null 2>&1
+	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${GREEN}"Ripgrep installation is done !" ${RESTORE}; echo "";
 }
 
 USEFUL_TOOLS () {
@@ -276,14 +347,18 @@ USEFUL_TOOLS () {
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Interlace installation in progress ...";
 	cd $TOOLS_DIRECTORY && git clone https://github.com/codingo/Interlace.git > /dev/null 2>&1 && cd Interlace && python3 setup.py install > /dev/null 2>&1;
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Interlace installation is done !"; echo "";
+	#Jq
+	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"jq installation in progress ...";
+	apt-get install -y jq > /dev/null 2>&1;
+	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"jq installation is done !" ${RESTORE}; echo "";
 	#Tmux
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Tmux installation in progress ...";
 	apt-get install tmux -y > /dev/null 2>&1;
 	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Tmux installation is done !"; echo "";
-	#Ripgrep
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Ripgrep installation in progress ...";
-	apt-get install -y ripgrep > /dev/null 2>&1
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Ripgrep installation is done !" ${RESTORE}; echo "";
+	#Uro
+	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Uro installation in progress ...";
+	pip3 install uro > /dev/null 2>&1;
+	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Uro installation is done !" ${RESTORE}; echo "";
 }
 
-ENVIRONMENT && SUBDOMAINS_ENUMERATION && DNS_RESOLVER && VISUAL_RECON && HTTP_PROBE && WEB_CRAWLING && NETWORK_SCANNER && HTTP_PARAMETER && FUZZING_TOOLS && SSRF_TOOLS && API_TOOLS && WORDLISTS && VULNS_XSS && VULNS_SQLI && CMS_SCANNER && VULNS_SCANNER && JS_HUNTING && USEFUL_TOOLS;
+ENVIRONMENT && SUBDOMAINS_ENUMERATION && DNS_RESOLVER && VISUAL_RECON && HTTP_PROBE && WEB_CRAWLING && NETWORK_SCANNER && HTTP_PARAMETER && FUZZING_TOOLS && LFI_TOOLS && SSRF_TOOLS && SSTI_TOOLS && API_TOOLS && WORDLISTS && VULNS_XSS && VULNS_SQLI && CMS_SCANNER && VULNS_SCANNER && JS_HUNTING && GIT_HUNTING  && SENSITIVE_FINDING && USEFUL_TOOLS;
