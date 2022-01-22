@@ -309,7 +309,7 @@ GIT_HUNTING() {
 CORS_MISCONFIG() {
 	echo -e ${BLUE}"[CORS MISCONFIG]" ${RED}"Corsy installation in progess ...";
 	cd $TOOLS_DIRECTORY && git clone https://github.com/s0md3v/Corsy.git > /dev/null 2>&1 && cd Corsy && pip3 install -r requirements.txt > /dev/null 2>&1;	
-	echo -e ${BLUE}"[CORS MISCONFIG]" ${RED}"Corsy installation is done !"; echo "";
+	echo -e ${BLUE}"[CORS MISCONFIG]" ${GREEN}"Corsy installation is done !"; echo "";
 }
 
 
