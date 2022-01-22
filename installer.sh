@@ -139,7 +139,7 @@ NETWORK_SCANNER () {
 	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"Naabu installation is done !"; echo "";
 	#RustScan
 	echo -e ${BLUE}"[NETWORK SCANNER]" ${RED}"RustScan installation in progress ...";
-	cd /tmp && wget https://github.com/RustScan/RustScan/releases/download/${RUSTSCAN}/rustscan_${RUSTSCAN}_amd64.deb > /dev/null 2>&1 && dpkg --install rustscan_${RUSTSCAN}_amd64.deb;
+	cd /tmp && wget https://github.com/RustScan/RustScan/releases/download/${RUSTSCANVER}/rustscan_${RUSTSCANVER}_amd64.deb > /dev/null 2>&1 && dpkg --install rustscan_${RUSTSCANVER}_amd64.deb > /dev/null 2>&1;
 	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"RustScan installation is done !"; echo "";
 }
 
