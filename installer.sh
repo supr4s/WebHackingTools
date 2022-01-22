@@ -137,6 +137,10 @@ NETWORK_SCANNER () {
 	echo -e ${BLUE}"[NETWORK SCANNER]" ${RED}"Naabu installation in progress ...";
 	GO111MODULE=on go get -v github.com/projectdiscovery/naabu/v2/cmd/naabu > /dev/null 2>&1 && ln -s ~/go/bin/naabu /usr/local/bin/;
 	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"Naabu installation is done !"; echo "";
+	#RustScan
+	echo -e ${BLUE}"[NETWORK SCANNER]" ${RED}"RustScan installation in progress ...";
+	cd /tmp && wget https://github.com/RustScan/RustScan/releases/download/${RUSTSCAN}/rustscan_${RUSTSCAN}_amd64.deb > /dev/null 2>&1 && dpkg --install rustscan_${RUSTSCAN}_amd64.deb;
+	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"RustScan installation is done !"; echo "";
 }
 
 HTTP_PARAMETER () {
