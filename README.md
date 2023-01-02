@@ -4,17 +4,17 @@ Automatically install some web hacking/bug bounty tools for your VPS.
 
 <b>O.S supported :heavy_check_mark: </b>
 
-- Debian 10/11 x64 
+- Debian 11 x64 
 
-- Kali Linux 2021.4 x64
+- Kali Linux 2022.4 x64
 
-- Linux Mint 20.2 x64
+- Linux Mint 21 x64
 
-- Ubuntu20.04 x64 
+- Ubuntu22.04 x64 
 
 
 
-[![asciicast](https://asciinema.org/a/ZjvDJJ6ZJsQvk4tuUbplaTf8a.svg)](https://asciinema.org/a/ZjvDJJ6ZJsQvk4tuUbplaTf8a)
+[![asciicast](https://asciinema.org/a/E2xfEuuvWhuO3RzlDnSdebCZR.svg)](https://asciinema.org/a/E2xfEuuvWhuO3RzlDnSdebCZR)
 
 
 
