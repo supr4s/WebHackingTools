@@ -8,7 +8,7 @@ fi
 #Creating tools directory if not exist
 source ./.env && mkdir -p $TOOLS_DIRECTORY;
 clear;
-cat ./banner.txt;
+cat ./banner/banner.txt;
 echo "";
 
 ENVIRONMENT () {
