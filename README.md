@@ -34,6 +34,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [Crobat](https://github.com/Cgboal/SonarSearch)
 - [Findomain](https://github.com/Findomain/Findomain)
 - [Github-subdomains](https://github.com/gwen001/github-subdomains)
+- [Gitlab-subdomains](https://github.com/gwen001/gitlab-subdomains) *
 - [Subfinder](https://github.com/projectdiscovery/subfinder)
 
 ### DNS resolver
@@ -57,6 +58,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [Masscan](https://github.com/robertdavidgraham/masscan)
 - [Naabu](https://github.com/projectdiscovery/naabu)
 - [Nmap](https://nmap.org/)
+- [Smap](https://github.com/s0md3v/Smap) *
 
 ### Web crawler
 
@@ -78,7 +80,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 
 ### Bypass 40X
 
-- [dontgo403]([https://github.com/ffuf/ffuf](https://github.com/devploit/dontgo403)) *
+- [dontgo403](https://github.com/devploit/dontgo403) *
 
 ### CORS tools
 
@@ -90,6 +92,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [ffuf](https://github.com/ffuf/ffuf)
 - [Gobuster](https://github.com/OJ/gobuster)
 - [wfuzz](https://github.com/xmendez/wfuzz)
+- [fuzzuli](https://github.com/musana/fuzzuli) *
 
 ### Prototype pollution
 
