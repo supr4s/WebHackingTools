@@ -167,11 +167,11 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [getallurls](https://github.com/lc/hacks/tree/master/getallurls)
 - [gron](https://github.com/tomnomnom/gron)
 - [Interlace](https://github.com/codingo/Interlace)
-- [jq](https://github.com/stedolan/jq) *
+- [jq](https://github.com/stedolan/jq)
 - [qsreplace](https://github.com/tomnomnom/qsreplace)
 - [Tmux](https://github.com/tmux/tmux)
 - [unfurl](https://github.com/tomnomnom/unfurl)
-- [Uro](https://github.com/s0md3v/uro) *
+- [Uro](https://github.com/s0md3v/uro)
 
 ### Note
 
