@@ -42,20 +42,15 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [MassDNS](https://github.com/blechschmidt/massdns)
 - [PureDNS](https://github.com/d3mondev/puredns)
 
-### Visual recon
-
-- [Aquatone](https://github.com/michenriksen/aquatone)
-- [Gowitness](https://github.com/sensepost/gowitness)
-
 ### HTTP probe
 
 - [httprobe](https://github.com/tomnomnom/httprobe)
 - [httpx](https://github.com/projectdiscovery/httpx)
 
-### Web crawler
+### Visual recon
 
-- [Gospider](https://github.com/jaeles-project/gospider)
-- [Hakrawler](https://github.com/hakluke/hakrawler)
+- [Aquatone](https://github.com/michenriksen/aquatone)
+- [Gowitness](https://github.com/sensepost/gowitness)
 
 ### Network scanner
 
@@ -63,39 +58,63 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [Naabu](https://github.com/projectdiscovery/naabu)
 - [Nmap](https://nmap.org/)
 
+### Web crawler
+
+- [Gospider](https://github.com/jaeles-project/gospider)
+- [Hakrawler](https://github.com/hakluke/hakrawler)
+- [Katana](https://github.com/projectdiscovery/katana) *
+
 ### HTTP parameter
 
 - [Arjun](https://github.com/s0md3v/Arjun)
-- [x8](https://github.com/Sh1Yo/x8/) *
+- [x8](https://github.com/Sh1Yo/x8/)
+
+### JavaScript hunting
+
+- [LinkFinder](https://github.com/GerbenJavado/LinkFinder)
+- [SecretFinder](https://github.com/m4ll0k/SecretFinder)
+- [subjs](https://github.com/lc/subjs)
+- [xnLinkFinder](https://github.com/xnl-h4ck3r/xnLinkFinder) *
+
+### Bypass 40X
+
+- [dontgo403]([https://github.com/ffuf/ffuf](https://github.com/devploit/dontgo403)) *
+
+### CORS tools
+
+- [Corsy](https://github.com/s0md3v/Corsy) *
+- [CORScanner](https://github.com/chenjj/CORScanner) *
 
 ### Fuzzing tools
 
 - [ffuf](https://github.com/ffuf/ffuf)
 - [Gobuster](https://github.com/OJ/gobuster)
-- [wfuzz](https://github.com/xmendez/wfuzz) *
+- [wfuzz](https://github.com/xmendez/wfuzz)
+
+### Prototype pollution
+
+- [ppfuzz](https://github.com/dwisiswant0/ppfuzz) *
+- [ppmap](https://github.com/kleiton0x00/ppmap) *
 
 ### LFI tools
 
-- [LFISuite](https://github.com/D35m0nd142/LFISuite) *
+- [LFISuite](https://github.com/D35m0nd142/LFISuite)
 
 ### SSRF tools
 
 - [SSRFmap](https://github.com/swisskyrepo/SSRFmap)
 - [Gopherus](https://github.com/tarunkant/Gopherus)
 - [Interactsh](https://github.com/projectdiscovery/interactsh)
+- [AutoSSRF](https://github.com/Th0h0/autossrf) *
 
 ### SSTI tools
 
-- [tplmap](https://github.com/epinna/tplmap) *
+- [tplmap](https://github.com/epinna/tplmap)
 
 ### API hacking tools
 
 - [Kiterunner + API routes](https://github.com/assetnote/kiterunner)
-
-### Wordlists
-
-- [SecLists](https://github.com/danielmiessler/SecLists)
-
+- 
 ### Vulns - XSS
 
 - [Dalfox](https://github.com/hahwul/dalfox)
@@ -107,36 +126,36 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [NoSQLMap](https://github.com/codingo/NoSQLMap)
 - [SQLMap](https://github.com/sqlmapproject/sqlmap)
 
-### CMS Scanner
-
-- [WPscan](https://github.com/wpscanteam/wpscan)
-- [droopescan](https://github.com/droope/droopescan)
-- [AEM-Hacker](https://github.com/0ang3el/aem-hacker)
-
 ### Vulns - Scanner
 
 - [Jaeles](https://github.com/jaeles-project/jaeles)
 - [Nikto](https://github.com/sullo/nikto) **
 - [Nuclei](https://github.com/projectdiscovery/nuclei)
 
-### JavaScript hunting
+### CMS Scanner
 
-- [LinkFinder](https://github.com/GerbenJavado/LinkFinder)
-- [SecretFinder](https://github.com/m4ll0k/SecretFinder)
-- [subjs](https://github.com/lc/subjs)
+- [WPscan](https://github.com/wpscanteam/wpscan)
+- [droopescan](https://github.com/droope/droopescan)
+- [AEM-Hacker](https://github.com/0ang3el/aem-hacker)
+
+### Wordlists
+
+- [SecLists](https://github.com/danielmiessler/SecLists)
+- [OneForAll](https://github.com/six2dez/OneListForAll)
 
 ### Git hunting
 
-- [GitDorker](https://github.com/obheda12/GitDorker) *
-- [gitGraber](https://github.com/hisxo/gitGraber) *
-- [GitHacker](https://github.com/WangYihang/GitHacker) *
-- [GitTools](https://github.com/internetwache/GitTools) *
+- [GitDorker](https://github.com/obheda12/GitDorker)
+- [gitGraber](https://github.com/hisxo/gitGraber)
+- [GitHacker](https://github.com/WangYihang/GitHacker)
+- [GitTools](https://github.com/internetwache/GitTools)
 
 ### Sensitive stuff finding
 
-- [DumpsterDiver](https://github.com/securing/DumpsterDiver) *
-- [EarlyBird](https://github.com/americanexpress/earlybird) *
+- [DumpsterDiver](https://github.com/securing/DumpsterDiver)
+- [EarlyBird](https://github.com/americanexpress/earlybird)
 - [Ripgrep](https://github.com/BurntSushi/ripgrep)
+- [Trufflehog](https://github.com/trufflesecurity/trufflehog) *
 
 ### Useful tools
 
