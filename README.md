@@ -82,7 +82,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 
 - [dontgo403](https://github.com/devploit/dontgo403) *
 
-### CORS tools
+### CORS tools (new)
 
 - [Corsy](https://github.com/s0md3v/Corsy) *
 - [CORScanner](https://github.com/chenjj/CORScanner) *
