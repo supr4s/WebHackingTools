@@ -10,7 +10,7 @@ Automatically install some web hacking/bug bounty tools for your VPS/hacking sta
 
 - Linux Mint 21 x64
 
-- Ubuntu22.04 x64 
+- Ubuntu 22.04 x64 
 
 
 
@@ -31,8 +31,21 @@ A Docker version is available, see [https://hub.docker.com/r/supr4s/webhackingto
 
 ```
 docker pull supr4s/webhackingtools
-docker run -it supr4s/webhackingtools --name webhackingtools
+docker run --name webhackingtools -it supr4s/webhackingtools
 ```
+
+To leave the container but leave it running:
+
+```
+ctrl + p and ctrl + q 
+```
+
+To re-attach to the container: 
+
+```
+docker attach webhackingtools
+```
+
 
 ## Available tools list
 
