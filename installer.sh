@@ -337,11 +337,9 @@ CMS_SCANNER () {
 }
 
 WORDLISTS () {
-	SecLists
 	echo -e ${BLUE}"[WORDLISTS]" ${RED}"SecLists installation in progress ...";
 	cd $TOOLS_DIRECTORY && git clone https://github.com/danielmiessler/SecLists.git > /dev/null 2>&1;
 	echo -e ${BLUE}"[WORDLISTS]" ${GREEN}"SecLists installation is done !"; echo "";
-	OneListForAll
 	echo -e ${BLUE}"[WORDLISTS]" ${RED}"OneListForAll installation in progress ...";
 	cd $TOOLS_DIRECTORY && git clone https://github.com/six2dez/OneListForAll > /dev/null 2>&1;
 	echo -e ${BLUE}"[WORDLISTS]" ${GREEN}"OneListForAll installation is done !"; echo "";
