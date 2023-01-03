@@ -347,9 +347,9 @@ WORDLISTS () {
 
 GIT_HUNTING() {
 	#GitDorker
-	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"gitGraber installation in progress ...";
+	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"GitDorker installation in progress ...";
 	cd $TOOLS_DIRECTORY && git clone https://github.com/obheda12/GitDorker.git > /dev/null 2>&1 && cd GitDorker && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"gitGraber installation is done !"; echo "";
+	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"GitDorker installation is done !"; echo "";
 	#gitGraber
 	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"gitGraber installation in progress ...";
 	cd $TOOLS_DIRECTORY && git clone https://github.com/hisxo/gitGraber.git > /dev/null 2>&1 && cd gitGraber && pip3 install -r requirements.txt > /dev/null 2>&1;
