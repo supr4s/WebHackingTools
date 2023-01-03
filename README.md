@@ -18,11 +18,20 @@ Automatically install some web hacking/bug bounty tools for your VPS/hacking sta
 
 
 
-## Installation 
+# Installation
+## 💻 Manual: laptop/VPS/other 
 
 ```
 apt-get update -y && apt-get install git -y
 cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingTools && ./installer.sh
+```
+## 🐳 Docker
+
+A Docker version is available, see [https://hub.docker.com/r/supr4s/webhackingtools](https://hub.docker.com/r/supr4s/webhackingtools)
+
+```
+docker pull supr4s/webhackingtools
+docker run -it supr4s/webhackingtools --name webhackingtools
 ```
 
 ## Available tools list
