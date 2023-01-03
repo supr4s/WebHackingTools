@@ -1,6 +1,6 @@
 # WebHackingTools
 
-Automatically install some web hacking/bug bounty tools for your VPS.
+Automatically install some web hacking/bug bounty tools for your VPS/hacking station.
 
 <b>O.S supported :heavy_check_mark: </b>
 
@@ -78,7 +78,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [subjs](https://github.com/lc/subjs)
 - [xnLinkFinder](https://github.com/xnl-h4ck3r/xnLinkFinder) *
 
-### Bypass 40X
+### Bypass 40X (new)
 
 - [dontgo403](https://github.com/devploit/dontgo403) *
 
@@ -94,7 +94,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 - [wfuzz](https://github.com/xmendez/wfuzz)
 - [fuzzuli](https://github.com/musana/fuzzuli) *
 
-### Prototype pollution
+### Prototype pollution (new)
 
 - [ppfuzz](https://github.com/dwisiswant0/ppfuzz) *
 - [ppmap](https://github.com/kleiton0x00/ppmap) *
@@ -144,7 +144,7 @@ cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingT
 ### Wordlists
 
 - [SecLists](https://github.com/danielmiessler/SecLists)
-- [OneForAll](https://github.com/six2dez/OneListForAll)
+- [OneForAll](https://github.com/six2dez/OneListForAll) *
 
 ### Git hunting
 
