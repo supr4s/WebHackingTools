@@ -105,8 +105,15 @@ trap print_summary EXIT
 # apt-get install (quiet, non-interactive)
 apt_install() { DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"; }
 
-# pip install honoring PEP 668 (externally-managed environments)
-pip_install() { pip3 install --break-system-packages -q "$@" 2>/dev/null || pip3 install -q "$@"; }
+# pip install honoring PEP 668 (externally-managed environments).
+# All supported OS are externally-managed, so --break-system-packages is always
+# the right call. If a tool's pinned requirements would require uninstalling a
+# dpkg-managed lib (which pip refuses), retry with --ignore-installed. Errors are
+# NOT silenced, so real failures land in the logfile.
+pip_install() {
+    pip3 install --break-system-packages -q "$@" && return 0
+    pip3 install --break-system-packages --ignore-installed -q "$@"
+}
 
 # go install + idempotent symlink into /usr/local/bin
 #   go_install <binary-name> <module@version>
@@ -220,6 +227,16 @@ install_smuggler() {
     git_get https://github.com/defparam/smuggler.git "$src" || return 1
     chmod +x "$src/smuggler.py"
     ln -sf "$src/smuggler.py" /usr/local/bin/smuggler
+}
+
+# Nikto lives in Debian non-free (not enabled by default), so apt can't find it.
+# It's a self-contained Perl script — install it from source.
+install_nikto() {
+    local src="$TOOLS_DIRECTORY/nikto"
+    git_get https://github.com/sullo/nikto.git "$src" || return 1
+    [ -f "$src/program/nikto.conf" ] || cp "$src/program/nikto.conf.default" "$src/program/nikto.conf"
+    chmod +x "$src/program/nikto.pl"
+    ln -sf "$src/program/nikto.pl" /usr/local/bin/nikto
 }
 
 install_findomain() {
@@ -503,7 +520,7 @@ SQLI_TOOLS() {
 VULNS_SCANNER() {
     section "VULNERABILITY SCANNER"
     run "Nuclei" install_nuclei
-    run "Nikto"  apt_install nikto
+    run "Nikto"  install_nikto
 }
 
 CMS_SCANNER() {
