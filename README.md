@@ -160,6 +160,7 @@ re-attach later with `docker attach webhackingtools`.
 
 ### Fuzzing tools
 
+- [dirsearch](https://github.com/maurosoria/dirsearch) *
 - [ffuf](https://github.com/ffuf/ffuf)
 - [Gobuster](https://github.com/OJ/gobuster)
 - [wfuzz](https://github.com/xmendez/wfuzz)

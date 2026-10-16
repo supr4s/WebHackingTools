@@ -464,8 +464,9 @@ FUZZING_TOOLS() {
     section "FUZZING TOOLS"
     run "ffuf"     go_install ffuf     github.com/ffuf/ffuf/v2@latest
     run "Gobuster" go_install gobuster github.com/OJ/gobuster/v3@latest
-    run "wfuzz"    apt_install wfuzz
-    run "fuzzuli"  go_install fuzzuli  github.com/musana/fuzzuli@latest
+    run "wfuzz"     apt_install wfuzz
+    run "fuzzuli"   go_install fuzzuli  github.com/musana/fuzzuli@latest
+    run "dirsearch" pip_install dirsearch
 }
 
 PROTO_POLLUTION() {
