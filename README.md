@@ -2,15 +2,19 @@
 
 Automatically install some web hacking/bug bounty tools for your VPS/hacking station.
 
+- **Idempotent**: safe to re-run, every tool is refreshed to its latest version (repos pulled, Go tools rebuilt, GitHub releases re-resolved).
+- **Resilient**: each tool is installed independently, one failure never aborts the rest. A summary of what succeeded/failed is printed at the end and a full log is written next to the script.
+- **No version to bump**: Go, Go tools and GitHub release binaries are resolved to `latest` at run time.
+
 <b>O.S supported :heavy_check_mark: </b>
 
-- Debian 11 x64 
+- Debian 13 x64 
 
-- Kali Linux 2022.4 x64
+- Kali Linux (rolling) x64
 
-- Linux Mint 21 x64
+- Linux Mint 22 x64
 
-- Ubuntu 22.04 x64 
+- Ubuntu 24.04 LTS x64 
 
 
 
@@ -23,8 +27,23 @@ Automatically install some web hacking/bug bounty tools for your VPS/hacking sta
 
 ```
 apt-get update -y && apt-get install git -y
-cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingTools && ./installer.sh
+cd /tmp && git clone https://github.com/supr4s/WebHackingTools && cd WebHackingTools && sudo ./installer.sh
 ```
+
+## ⚙️ Configuration
+
+Everything lives in `.env`, next to the script:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `TOOLS_DIRECTORY` | `/home/hack/tools` | Where git-cloned tools and wordlists are stored |
+| `GO_FALLBACK_VERSION` | `1.27.1` | Go version used only if `https://go.dev/VERSION` is unreachable |
+| `GITHUB_TOKEN` | *(unset)* | Optional. Raises the GitHub API rate limit used to resolve latest releases |
+
+Go tools are installed in `/root/go/bin` and symlinked into `/usr/local/bin`. A timestamped log (`install_YYYYMMDD_HHMMSS.log`) is written next to the script; failed tools are listed in the final summary.
+
+Requirements: `amd64` only (Go toolchain and prebuilt release binaries are fetched for `linux-amd64`).
+
 ## 🐳 Docker
 
 A Docker version is available, see [https://hub.docker.com/r/supr4s/webhackingtools](https://hub.docker.com/r/supr4s/webhackingtools)
@@ -51,19 +70,20 @@ docker attach webhackingtools
 
 ### Subdomains enumeration
 
-- [Amass](https://github.com/OWASP/Amass)
+- [Amass](https://github.com/owasp-amass/amass)
 - [Assetfinder](https://github.com/tomnomnom/assetfinder)
-- [Crobat](https://github.com/Cgboal/SonarSearch)
 - [Findomain](https://github.com/Findomain/Findomain)
 - [Github-subdomains](https://github.com/gwen001/github-subdomains)
-- [Gitlab-subdomains](https://github.com/gwen001/gitlab-subdomains) *
+- [Gitlab-subdomains](https://github.com/gwen001/gitlab-subdomains)
 - [Subfinder](https://github.com/projectdiscovery/subfinder)
 
 ### DNS resolver
 
+- [dnsgen](https://github.com/ProjectAnte/dnsgen) *
 - [dnsx](https://github.com/projectdiscovery/dnsx)
 - [MassDNS](https://github.com/blechschmidt/massdns)
 - [PureDNS](https://github.com/d3mondev/puredns)
+- [shuffledns](https://github.com/projectdiscovery/shuffledns) *
 
 ### HTTP probe
 
@@ -72,74 +92,81 @@ docker attach webhackingtools
 
 ### Visual recon
 
-- [Aquatone](https://github.com/michenriksen/aquatone)
+- [AIquatone](https://github.com/supr4s/AIquatone) *
 - [Gowitness](https://github.com/sensepost/gowitness)
 
 ### Network scanner
 
+- [mapcidr](https://github.com/projectdiscovery/mapcidr) *
 - [Masscan](https://github.com/robertdavidgraham/masscan)
 - [Naabu](https://github.com/projectdiscovery/naabu)
 - [Nmap](https://nmap.org/)
-- [Smap](https://github.com/s0md3v/Smap) *
+- [Smap](https://github.com/s0md3v/Smap)
+
+### Subdomain takeover
+
+- [subzy](https://github.com/PentestPad/subzy) *
 
 ### Web crawler
 
+- [cariddi](https://github.com/edoardottt/cariddi) *
 - [Gospider](https://github.com/jaeles-project/gospider)
 - [Hakrawler](https://github.com/hakluke/hakrawler)
-- [Katana](https://github.com/projectdiscovery/katana) *
+- [Katana](https://github.com/projectdiscovery/katana)
 
 ### HTTP parameter
 
 - [Arjun](https://github.com/s0md3v/Arjun)
+- [ParamSpider](https://github.com/devanshbatham/ParamSpider) *
 - [x8](https://github.com/Sh1Yo/x8/)
 
 ### JavaScript hunting
 
 - [LinkFinder](https://github.com/GerbenJavado/LinkFinder)
 - [SecretFinder](https://github.com/m4ll0k/SecretFinder)
+- [jsluice](https://github.com/BishopFox/jsluice) *
 - [subjs](https://github.com/lc/subjs)
-- [xnLinkFinder](https://github.com/xnl-h4ck3r/xnLinkFinder) *
+- [xnLinkFinder](https://github.com/xnl-h4ck3r/xnLinkFinder)
 
-### Bypass 40X (new)
+### Bypass 40X
 
-- [dontgo403](https://github.com/devploit/dontgo403) *
+- [dontgo403](https://github.com/devploit/dontgo403)
+- [gobypass403](https://github.com/slicingmelon/gobypass403) *
+- [unKover](https://github.com/BruteLogic/unKover) *
 
-### CORS tools (new)
+### CORS tools
 
-- [Corsy](https://github.com/s0md3v/Corsy) *
-- [CORScanner](https://github.com/chenjj/CORScanner) *
+- [Corsy](https://github.com/s0md3v/Corsy)
+- [CORScanner](https://github.com/chenjj/CORScanner)
 
 ### Fuzzing tools
 
 - [ffuf](https://github.com/ffuf/ffuf)
 - [Gobuster](https://github.com/OJ/gobuster)
 - [wfuzz](https://github.com/xmendez/wfuzz)
-- [fuzzuli](https://github.com/musana/fuzzuli) *
+- [fuzzuli](https://github.com/musana/fuzzuli)
 
-### Prototype pollution (new)
+### Prototype pollution
 
-- [ppfuzz](https://github.com/dwisiswant0/ppfuzz) *
-- [ppmap](https://github.com/kleiton0x00/ppmap) *
-
-### LFI tools
-
-- [LFISuite](https://github.com/D35m0nd142/LFISuite)
+- [ppfuzz](https://github.com/dwisiswant0/ppfuzz)
+- [ppmap](https://github.com/kleiton0x00/ppmap)
 
 ### SSRF tools
 
 - [SSRFmap](https://github.com/swisskyrepo/SSRFmap)
-- [Gopherus](https://github.com/tarunkant/Gopherus)
+- [Gopherus3](https://github.com/Esonhugh/Gopherus3) *
 - [Interactsh](https://github.com/projectdiscovery/interactsh)
-- [AutoSSRF](https://github.com/Th0h0/autossrf) *
+- [AutoSSRF](https://github.com/Th0h0/autossrf)
+- [surf](https://github.com/assetnote/surf) *
 
 ### SSTI tools
 
-- [tplmap](https://github.com/epinna/tplmap)
+- [SSTImap](https://github.com/vladko312/SSTImap) *
 
 ### API hacking tools
 
 - [Kiterunner + API routes](https://github.com/assetnote/kiterunner)
-- 
+
 ### Vulns - XSS
 
 - [Dalfox](https://github.com/hahwul/dalfox)
@@ -148,13 +175,29 @@ docker attach webhackingtools
 
 ### Vulns - SQL Injection
 
-- [NoSQLMap](https://github.com/codingo/NoSQLMap)
+- [Ghauri](https://github.com/r0oth3x49/ghauri) *
+- [nosqli](https://github.com/Charlie-belmer/nosqli) *
 - [SQLMap](https://github.com/sqlmapproject/sqlmap)
+
+### Open redirect
+
+- [Oralyzer](https://github.com/r0075h3ll/Oralyzer) *
+
+### CRLF injection
+
+- [crlfuzz](https://github.com/dwisiswant0/crlfuzz) *
+
+### HTTP request smuggling
+
+- [smuggler](https://github.com/defparam/smuggler) *
+
+### JWT
+
+- [jwt_tool](https://github.com/ticarpi/jwt_tool) *
 
 ### Vulns - Scanner
 
-- [Jaeles](https://github.com/jaeles-project/jaeles)
-- [Nikto](https://github.com/sullo/nikto) **
+- [Nikto](https://github.com/sullo/nikto)
 - [Nuclei](https://github.com/projectdiscovery/nuclei)
 
 ### CMS Scanner
@@ -162,11 +205,19 @@ docker attach webhackingtools
 - [WPscan](https://github.com/wpscanteam/wpscan)
 - [droopescan](https://github.com/droope/droopescan)
 - [AEM-Hacker](https://github.com/0ang3el/aem-hacker)
+- [hopgoblin](https://github.com/assetnote/hopgoblin) *
+
+### Dependency confusion / Supply chain
+
+- [confused](https://github.com/visma-prodsec/confused) *
+- [depx](https://github.com/projectdiscovery/depx) *
+- [dustilock](https://github.com/Checkmarx/dustilock) *
 
 ### Wordlists
 
+- [commonspeak2](https://github.com/assetnote/commonspeak2) *
 - [SecLists](https://github.com/danielmiessler/SecLists)
-- [OneForAll](https://github.com/six2dez/OneListForAll) *
+- [OneListForAll](https://github.com/six2dez/OneListForAll)
 
 ### Git hunting
 
@@ -177,23 +228,27 @@ docker attach webhackingtools
 
 ### Sensitive stuff finding
 
-- [DumpsterDiver](https://github.com/securing/DumpsterDiver)
 - [EarlyBird](https://github.com/americanexpress/earlybird)
+- [gitleaks](https://github.com/gitleaks/gitleaks) *
 - [Ripgrep](https://github.com/BurntSushi/ripgrep)
-- [Trufflehog](https://github.com/trufflesecurity/trufflehog) *
+- [Trufflehog](https://github.com/trufflesecurity/trufflehog)
 
 ### Useful tools
 
 - [anew](https://github.com/tomnomnom/anew)
 - [anti-burl](https://github.com/tomnomnom/hacks/tree/master/anti-burl)
-- [getallurls](https://github.com/lc/hacks/tree/master/getallurls)
+- [gau](https://github.com/lc/gau)
+- [gf](https://github.com/tomnomnom/gf) *
 - [gron](https://github.com/tomnomnom/gron)
-- [Interlace](https://github.com/codingo/Interlace)
 - [jq](https://github.com/stedolan/jq)
+- [notify](https://github.com/projectdiscovery/notify) *
 - [qsreplace](https://github.com/tomnomnom/qsreplace)
 - [Tmux](https://github.com/tmux/tmux)
 - [unfurl](https://github.com/tomnomnom/unfurl)
+- [urlfinder](https://github.com/projectdiscovery/urlfinder) *
 - [Uro](https://github.com/s0md3v/uro)
+- [waybackurls](https://github.com/tomnomnom/waybackurls) *
+- [waymore](https://github.com/xnl-h4ck3r/waymore) *
 
 ### Note
 
@@ -201,9 +256,3 @@ docker attach webhackingtools
 - Please be careful with these tools and only use them on targets you have explicitly authorized.
 
 **N.B** : * = added in the last update
-
-** For Nikto and Debian 10, you need to have the non-free contrib sources in addition. e.g : 
-```
-deb http://deb.debian.org/debian/ buster main contrib non-free
-deb-src http://deb.debian.org/debian/ buster main contrib non-free
-```

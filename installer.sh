@@ -1,451 +1,627 @@
-#!/bin/bash -i
-#Check if the script is executed with root privileges
-if [ "$EUID" -ne 0 ]
-  then echo -e ${RED}"Please execute this script with root privileges !"
-  exit
+#!/usr/bin/env bash
+#
+# WebHackingTools installer
+# https://github.com/supr4s/WebHackingTools
+#
+# Installs a curated set of web hacking / bug bounty tools.
+#  - Idempotent: safe to re-run (symlinks refreshed, repos pulled).
+#  - Resilient: each tool is installed independently; one failure never
+#    aborts the rest. A success/failure summary is printed at the end.
+#  - Self-updating: Go and GitHub releases are resolved to their latest
+#    version at runtime (no versions to bump by hand).
+#
+set -uo pipefail
+
+# --- Resolve script location so it works from any working directory ----------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# --- Optional flags ----------------------------------------------------------
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+    cat <<'EOF'
+Usage: sudo ./installer.sh
+
+Installs all web hacking / bug bounty tools listed in the README.
+Configuration lives in .env (TOOLS_DIRECTORY, optional GITHUB_TOKEN).
+A timestamped log is written next to the script (install_YYYYMMDD_HHMMSS.log).
+EOF
+    exit 0
 fi
 
-#Creating tools directory if not exist
-source ./.env && mkdir -p $TOOLS_DIRECTORY;
-clear;
-cat ./banner/banner.txt;
-echo "";
+# --- Root check --------------------------------------------------------------
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    echo "Please execute this script with root privileges (sudo ./installer.sh)" >&2
+    exit 1
+fi
 
-ENVIRONMENT () {
-	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Packages required installation in progress ...";
-	#Check Operating System
-	OS=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
-	if [ "$OS" == "Debian" ] || [ "$OS" == "Linuxmint" ]; then
-		#Specific Debian
-		#chromium
-		apt-get update -y > /dev/null 2>&1;
-		apt-get install chromium python2 python2.7 python3 python3-pip unzip make gcc libpcap-dev curl build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev ruby-dev ruby libgmp-dev zlib1g-dev -y > /dev/null 2>&1;
-		cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
-		#Needed for NoSQLMap
-		pip install couchdb pbkdf2 pymongo ipcalc six > /dev/null 2>&1;
-	elif [ "$OS" == "Ubuntu" ]; then
-		#Specific Ubuntu
-		#Specificity : chromium-browser replace chromium
-        	apt-get update -y > /dev/null 2>&1
-        	apt-get install chromium-browser python2 python2.7 python3 python3-pip unzip make gcc libpcap-dev curl build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev ruby-dev ruby libgmp-dev zlib1g-dev -y > /dev/null 2>&1;
-        	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
-        	#Needed for NoSQLMap
-        	pip install couchdb pbkdf2 pymongo ipcalc six > /dev/null 2>&1; 
-	elif [ "$OS" == "Kali" ]; then
-		#Specific Kali Linux
-		#Specificity : no package name with "python"
-        	apt-get update -y > /dev/null 2>&1;
-        	apt-get install chromium python3 python3-pip unzip make gcc libpcap-dev curl build-essential libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev ruby-dev ruby libgmp-dev zlib1g-dev -y > /dev/null 2>&1;
-        	cd /tmp && curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py > /dev/null 2>&1 && python2 get-pip.py > /dev/null 2>&1;
-        	pip install -U setuptools > /dev/null 2>&1;
-        	#Needed for NoSQLMap
-        	pip install couchdb pbkdf2 pymongo ipcalc > /dev/null 2>&1;    
-	else
-        	echo "OS unrecognized. Please check the compatibility with your system.";
-        	echo "End of the script";
-        exit;
-	fi
+# --- Load configuration (.env: colors, TOOLS_DIRECTORY, fallbacks) -----------
+if [ ! -f "$SCRIPT_DIR/.env" ]; then
+    echo "Missing .env file next to installer.sh" >&2
+    exit 1
+fi
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/.env"
+[ -n "${GITHUB_TOKEN:-}" ] && export GITHUB_TOKEN
 
-unset OS
-	#Bash colors
-	sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc && source ~/.bashrc
-	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Packages required installation is done !"; echo "";
-	#Generic fot both OS - Golang environment
-	echo -e ${BLUE}"[ENVIRONMENT]" ${RED}"Golang environment installation in progress ...";
-    cd /tmp && curl -O https://dl.google.com/go/go"$GOVER".linux-amd64.tar.gz > /dev/null 2>&1 && tar -C /usr/local -xzf go"$GOVER".linux-amd64.tar.gz > /dev/null 2>&1 && echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc;
-    source ~/.bashrc;
-	echo -e ${BLUE}"[ENVIRONMENT]" ${GREEN}"Golang environment installation is done !"; echo "";
+: "${TOOLS_DIRECTORY:?TOOLS_DIRECTORY must be set in .env}"
+: "${GO_FALLBACK_VERSION:=1.27.1}"
+mkdir -p "$TOOLS_DIRECTORY"
+
+# --- Go environment (used by every `go install`) -----------------------------
+export GOPATH="${GOPATH:-$HOME/go}"
+export GOBIN="$GOPATH/bin"
+mkdir -p "$GOBIN"
+export PATH="/usr/local/go/bin:$GOBIN:$PATH"
+
+# --- Logging -----------------------------------------------------------------
+LOGFILE="$SCRIPT_DIR/install_$(date +%Y%m%d_%H%M%S).log"
+declare -a OK_LIST=()
+declare -a FAIL_LIST=()
+
+_ts()      { date '+%Y-%m-%d %H:%M:%S'; }
+log_info() { echo -e "${BLUE}[*]${RESTORE} $*";  echo "[$(_ts)] [INFO] $*" >>"$LOGFILE"; }
+log_ok()   { echo -e "${GREEN}[+]${RESTORE} $*"; echo "[$(_ts)] [ OK ] $*" >>"$LOGFILE"; }
+log_warn() { echo -e "${YELLOW}[!]${RESTORE} $*"; echo "[$(_ts)] [WARN] $*" >>"$LOGFILE"; }
+log_err()  { echo -e "${RED}[-]${RESTORE} $*";   echo "[$(_ts)] [FAIL] $*" >>"$LOGFILE"; }
+section()  { echo; echo -e "${LBLUE}==== $* ====${RESTORE}"; echo "" >>"$LOGFILE"; echo "[$(_ts)] ==== $* ====" >>"$LOGFILE"; }
+
+# run "<Nice name>" <command...> : run quietly, log outcome, track OK/FAIL.
+# The command is any function/binary below; all output goes to the logfile.
+run() {
+    local name="$1"; shift
+    log_info "$name — installation in progress ..."
+    if "$@" >>"$LOGFILE" 2>&1; then
+        log_ok "$name installation is done !"
+        OK_LIST+=("$name")
+        return 0
+    else
+        log_err "$name installation FAILED (see $LOGFILE)"
+        FAIL_LIST+=("$name")
+        return 1
+    fi
 }
 
-SUBDOMAINS_ENUMERATION () {
-	#Subfinder
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Subfinder installation in progress ...";
-	go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest > /dev/null 2>&1 && ln -s ~/go/bin/subfinder /usr/local/bin/;
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Subfinder installation is done !"; echo "";
-	#Assetfinder
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Assetfinder installation in progress ...";
-	go install github.com/tomnomnom/assetfinder@latest > /dev/null 2>&1 && ln -s ~/go/bin/assetfinder /usr/local/bin/;
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Assetfinder installation is done !"; echo "";
-	#Findomain
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Findomain installation in progress ...";
-	cd /tmp && wget https://github.com/Edu4rdSHL/findomain/releases/latest/download/findomain-linux.zip > /dev/null 2>&1 && unzip findomain-linux.zip > /dev/null 2>&1 && chmod +x findomain && mv ./findomain /usr/local/bin/findomain;
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Findomain installation is done !"; echo "";
-	#Github-subdomains
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Github-subdomains installation in progress ...";
-	go install github.com/gwen001/github-subdomains@latest > /dev/null 2>&1 && ln -s ~/go/bin/github-subdomains /usr/local/bin/;
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Github-subdomains installation is done !"; echo "";
-	#Gitlab-subdomains
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Gitlab-subdomains installation in progress ...";
-	go install github.com/gwen001/gitlab-subdomains@latest > /dev/null 2>&1 && ln -s ~/go/bin/gitlab-subdomains /usr/local/bin/;
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Gitlab-subdomains installation is done !"; echo "";
-	#Amass
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Amass installation in progress ...";
-	cd /tmp && wget https://github.com/OWASP/Amass/releases/download/v$AMASSVER/amass_linux_amd64.zip > /dev/null 2>&1 && unzip amass_linux_amd64.zip > /dev/null 2>&1 && mv amass_linux_amd64/amass /usr/local/bin/;
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Amass installation is done !"; echo "";
-	#Crobat
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${RED}"Crobat installation in progress ...";
-	go install github.com/cgboal/sonarsearch/cmd/crobat@latest > /dev/null 2>&1 && ln -s ~/go/bin/crobat /usr/local/bin/;
-	echo -e ${BLUE}"[SUBDOMAINS ENUMERATION]" ${GREEN}"Crobat installation is done !"; echo "";
+print_summary() {
+    section "SUMMARY"
+    echo -e "${GREEN}Installed : ${#OK_LIST[@]}${RESTORE}"
+    echo -e "${RED}Failed    : ${#FAIL_LIST[@]}${RESTORE}"
+    if [ "${#FAIL_LIST[@]}" -gt 0 ]; then
+        echo -e "${YELLOW}The following tools failed:${RESTORE}"
+        for t in "${FAIL_LIST[@]}"; do echo "   - $t"; done
+    fi
+    echo -e "${LIGHTGRAY}Full log: $LOGFILE${RESTORE}"
+    echo "[$(_ts)] SUMMARY ok=${#OK_LIST[@]} fail=${#FAIL_LIST[@]}" >>"$LOGFILE"
+}
+trap print_summary EXIT
+
+# =============================================================================
+#  Generic install helpers
+# =============================================================================
+
+# apt-get install (quiet, non-interactive)
+apt_install() { DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"; }
+
+# pip install honoring PEP 668 (externally-managed environments)
+pip_install() { pip3 install --break-system-packages -q "$@" 2>/dev/null || pip3 install -q "$@"; }
+
+# go install + idempotent symlink into /usr/local/bin
+#   go_install <binary-name> <module@version>
+go_install() {
+    local bin="$1" pkg="$2"
+    go install "$pkg" || return 1
+    ln -sf "$GOBIN/$bin" "/usr/local/bin/$bin"
 }
 
-DNS_RESOLVER () {
-	#MassDNS
-	echo -e ${BLUE}"[DNS RESOLVER]" ${RED}"MassDNS installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/blechschmidt/massdns.git > /dev/null 2>&1 && cd massdns && make > /dev/null 2>&1 && ln -s $TOOLS_DIRECTORY/massdns/bin/massdns /usr/local/bin/;
-	echo -e ${BLUE}"[DNS RESOLVER]" ${GREEN}"MassDNS installation is done !"; echo "";
-	#dnsx
-	echo -e ${BLUE}"[DNS RESOLVER]" ${RED}"dnsx installation in progress ...";
-	go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest > /dev/null 2>&1 && ln -s ~/go/bin/dnsx /usr/local/bin/;
-	echo -e ${BLUE}"[DNS RESOLVER]" ${GREEN}"dnsx installation is done !"; echo "";
-	#PureDNS
-	echo -e ${BLUE}"[DNS RESOLVER]" ${RED}"PureDNS installation in progress ...";
-	go install github.com/d3mondev/puredns/v2@latest > /dev/null 2>&1 && ln -s ~/go/bin/puredns /usr/local/bin;
-	echo -e ${BLUE}"[DNS RESOLVER]" ${GREEN}"PureDNS installation is done !"; echo "";
+# git clone (shallow) or fast-forward pull if already present (idempotent)
+#   git_get <repo-url> <destination>
+git_get() {
+    local repo="$1" dest="$2"
+    if [ -d "$dest/.git" ]; then
+        git -C "$dest" pull --quiet --ff-only || true
+    else
+        rm -rf "$dest"
+        git clone --depth 1 --quiet "$repo" "$dest"
+    fi
 }
 
-HTTP_PROBE () {
-	#httpx
-	echo -e ${BLUE}"[HTTP PROBE]" ${RED}"httpx installation in progress ...";
-	go install github.com/projectdiscovery/httpx/cmd/httpx@latest > /dev/null 2>&1 && ln -s ~/go/bin/httpx /usr/local/bin/;
-	echo -e ${BLUE}"[HTTP PROBE]" ${GREEN}"Httpx installation is done !"; echo "";
-	#httprobe
-	echo -e ${BLUE}"[HTTP PROBE]" ${RED}"httprobe installation in progress ...";
-	go install github.com/tomnomnom/httprobe@latest > /dev/null 2>&1 && ln -s ~/go/bin/httprobe /usr/local/bin/;
-	echo -e ${BLUE}"[HTTP PROBE]" ${GREEN}"httprobe installation is done !"; echo "";
+# git_get + install Python requirements if present
+#   git_pip <repo-url> <destination>
+git_pip() {
+    local repo="$1" dest="$2"
+    git_get "$repo" "$dest" || return 1
+    if [ -f "$dest/requirements.txt" ]; then
+        pip_install -r "$dest/requirements.txt" || return 1
+    fi
+    return 0
 }
 
-VISUAL_RECON () {
-	#Aquatone
-	echo -e ${BLUE}"[VISUAL RECON]" ${RED}"Aquatone installation in progress ...";
-	cd /tmp && wget https://github.com/michenriksen/aquatone/releases/download/v$AQUATONEVER/aquatone_linux_amd64_$AQUATONEVER.zip > /dev/null 2>&1 && unzip aquatone_linux_amd64_$AQUATONEVER.zip > /dev/null 2>&1 && mv aquatone /usr/local/bin/;
-	echo -e ${BLUE}"[VISUAL RECON]" ${GREEN}"Aquatone installation is done !"; echo "";
-	#Gowitness
-	echo -e ${BLUE}"[VISUAL RECON]" ${RED}"Gowitness installation in progress ...";
-	cd /tmp && wget https://github.com/sensepost/gowitness/releases/download/$GOWITNESSVER/gowitness-$GOWITNESSVER-linux-amd64 > /dev/null 2>&1 && mv gowitness-$GOWITNESSVER-linux-amd64 /usr/local/bin/gowitness && chmod +x /usr/local/bin/gowitness;
-	echo -e ${BLUE}"[VISUAL RECON]" ${GREEN}"Gowitness installation is done !"; echo "";
+# curl against the GitHub API, authenticated if GITHUB_TOKEN is set
+_gh_curl() {
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" "$@"
+    else
+        curl -fsSL "$@"
+    fi
 }
 
-NETWORK_SCANNER () {
-	#Nmap
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${RED}"Nmap installation in progress ...";
-	apt-get install nmap -y > /dev/null 2>&1;
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"Nmap installation is done !"; echo "";
-	#masscan
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${RED}"Masscan installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/robertdavidgraham/masscan > /dev/null 2>&1 && cd masscan && make > /dev/null 2>&1 && make install > /dev/null 2>&1 && mv bin/masscan /usr/local/bin/;
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"Masscan installation is done !"; echo "";
-	#naabu
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${RED}"Naabu installation in progress ...";
-	go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest > /dev/null 2>&1 && ln -s ~/go/bin/naabu /usr/local/bin/;
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"Naabu installation is done !"; echo "";
-	#Smap
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${RED}"Smap installation in progress ...";
-	go install -v github.com/s0md3v/smap/cmd/smap@latest > /dev/null 2>&1 && ln -s ~/go/bin/smap /usr/local/bin/;
-	echo -e ${BLUE}"[NETWORK SCANNER]" ${GREEN}"Smap installation is done !"; echo "";
+# Download the latest release asset matching a regex
+#   dl_asset <owner/repo> <asset-name-regex> <output-path>
+dl_asset() {
+    local repo="$1" pattern="$2" out="$3" url
+    url="$(_gh_curl "https://api.github.com/repos/$repo/releases/latest" \
+          | grep -Po '"browser_download_url":\s*"\K[^"]+' \
+          | grep -E "$pattern" | head -n1)"
+    if [ -z "$url" ]; then
+        echo "No release asset matching /$pattern/ for $repo" >&2
+        return 1
+    fi
+    curl -fsSL "$url" -o "$out"
 }
 
-WEB_CRAWLING () {
-	#Gospider
-	echo -e ${BLUE}"[WEB CRAWLING]" ${RED}"Gospider installation in progress ...";
-	go install github.com/jaeles-project/gospider@latest > /dev/null 2>&1 && ln -s ~/go/bin/gospider /usr/local/bin/;
-	echo -e ${BLUE}"[WEB CRAWLING]" ${GREEN}"Gospider installation is done !"; echo "";
-	#Hakrawler
-	echo -e ${BLUE}"[WEB CRAWLING]" ${RED}"Hakrawler installation in progress ...";
-	go install github.com/hakluke/hakrawler@latest > /dev/null 2>&1 && ln -s ~/go/bin/hakrawler /usr/local/bin/;
-	echo -e ${BLUE}"[WEB CRAWLING]" ${GREEN}"Hakrawler installation is done !"; echo "";
-	#Katana
-	echo -e ${BLUE}"[WEB CRAWLING]" ${RED}"Katana installation in progress ...";
-	go install github.com/projectdiscovery/katana/cmd/katana@latest > /dev/null 2>&1 && ln -s ~/go/bin/katana /usr/local/bin/;
-	echo -e ${BLUE}"[WEB CRAWLING]" ${GREEN}"Katana installation is done !"; echo "";
+# Append a line to ~/.bashrc only if not already present
+add_bashrc() {
+    local line="$1" file="$HOME/.bashrc"
+    touch "$file"
+    grep -qxF "$line" "$file" || echo "$line" >> "$file"
 }
 
-HTTP_PARAMETER () {
-	#Arjun
-	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${RED}"Arjun installation in progress ...";
-	pip3 install arjun > /dev/null 2>&1;
-	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${GREEN}"Arjun installation is done !"; echo "";
-	#x8
-	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${RED}"x8 installation in progress ...";
-	cd /tmp && wget https://github.com/Sh1Yo/x8/releases/download/v"$X8VER"/x86_64-linux-x8.gz > /dev/null 2>&1 && gzip -d x86_64-linux-x8.gz > /dev/null 2>&1 && chmod +x x86_64-linux-x8 && mv x86_64-linux-x8 /usr/local/bin/x8;
-	echo -e ${BLUE}"[HTTP PARAMETER DISCOVERY]" ${GREEN}"x8 installation is done !"; echo "";
+# =============================================================================
+#  Tool-specific install functions (multi-step installs)
+# =============================================================================
+
+install_golang() {
+    local gover
+    # shellcheck disable=SC2016  # literal $PATH/$HOME wanted in .bashrc
+    add_bashrc 'export PATH=/usr/local/go/bin:$HOME/go/bin:$PATH'
+    # shellcheck disable=SC2016
+    add_bashrc 'export GOPATH=$HOME/go'
+    gover="$(curl -fsSL 'https://go.dev/VERSION?m=text' 2>/dev/null | head -n1 | sed 's/^go//')"
+    [ -n "$gover" ] || gover="$GO_FALLBACK_VERSION"
+    if [ -x /usr/local/go/bin/go ] && [ "$(/usr/local/go/bin/go env GOVERSION 2>/dev/null | sed 's/^go//')" = "$gover" ]; then
+        return 0   # already on the latest version
+    fi
+    curl -fsSL "https://dl.google.com/go/go${gover}.linux-amd64.tar.gz" -o /tmp/go.tar.gz || return 1
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf /tmp/go.tar.gz || return 1
+    rm -f /tmp/go.tar.gz
 }
 
-JS_HUNTING () {
-	#Linkfinder
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${RED}"Linkfinder installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/GerbenJavado/LinkFinder.git > /dev/null 2>&1 && cd LinkFinder && pip3 install -r requirements.txt > /dev/null 2>&1 && python3 setup.py install > /dev/null 2>&1;
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${GREEN}"Linkfinder installation is done !"; echo "";
-	#SecretFinder
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${RED}"SecretFinder installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/m4ll0k/SecretFinder.git > /dev/null 2>&1 && cd SecretFinder && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${GREEN}"SecretFinder installation is done !"; echo "";
-	#subjs
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${RED}"subjs installation in progress ...";
-	go install github.com/lc/subjs@latest > /dev/null 2>&1 && ln -s ~/go/bin/subjs /usr/local/bin/;
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${GREEN}"subjs installation is done !"; echo "";
-	#xnLinkFinder
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${RED}"xnLinkFinder installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/xnl-h4ck3r/xnLinkFinder.git > /dev/null 2>&1 && cd xnLinkFinder && python3 setup.py install > /dev/null 2>&1;
-	echo -e ${BLUE}"[JS FILES HUNTING]" ${GREEN}"xnLinkFinder installation is done !"; echo "";
+# commonspeak2 ships no go.mod (glide-based), install from the release binary.
+install_commonspeak2() {
+    dl_asset "assetnote/commonspeak2" 'Linux_x86_64\.tar\.gz$' /tmp/commonspeak2.tar.gz || return 1
+    tar -xzf /tmp/commonspeak2.tar.gz -C /tmp commonspeak2 || return 1
+    install -m 0755 /tmp/commonspeak2 /usr/local/bin/commonspeak2
 }
 
-BYPASS_40X () {
-	#dontgo403
-	echo -e ${BLUE}"[BYPASS 40X]" ${RED}"dontgo403 installation in progress ...";
-	cd /tmp && wget https://github.com/devploit/dontgo403/releases/download/0.5/dontgo403_linux_amd64 > /dev/null 2>&1 && chmod +x dontgo403_linux_amd64 && mv dontgo403_linux_amd64 /usr/local/bin/dontgo403;
-	echo -e ${BLUE}"[BYPASS 40X]" ${GREEN}"dontgo403 installation is done !"; echo "";
+# hopgoblin is a Python3 AEM toolkit with no shebang: install deps + a launcher.
+install_hopgoblin() {
+    local src="$TOOLS_DIRECTORY/hopgoblin"
+    git_get https://github.com/assetnote/hopgoblin.git "$src" || return 1
+    pip_install -r "$src/requirements.txt" || return 1
+    printf '#!/bin/sh\nexec python3 "%s/hopgoblin.py" "$@"\n' "$src" > /usr/local/bin/hopgoblin
+    chmod 0755 /usr/local/bin/hopgoblin
 }
 
-CORS_TOOLS () {
-	#Corsy
-	echo -e ${BLUE}"[CORS MISCONFIGURATION]" ${RED}"Corsy installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/s0md3v/Corsy > /dev/null 2>&1; cd Corsy && pip3 install requests > /dev/null 2>&1;
-	echo -e ${BLUE}"[CORS MISCONFIGURATION]" ${GREEN}"Corsy installation is done !"; echo "";
-	#CORScanner
-	echo -e ${BLUE}"[CORS MISCONFIGURATION]" ${RED}"CORScanner installation in progress ...";
-	pip install corscanner > /dev/null 2>&1;
-	echo -e ${BLUE}"[CORS MISCONFIGURATION]" ${GREEN}"CORScanner installation is done !"; echo "";
+# jwt_tool: py3 script (shebang) + requirements, symlink into PATH.
+install_jwt_tool() {
+    local src="$TOOLS_DIRECTORY/jwt_tool"
+    git_pip https://github.com/ticarpi/jwt_tool.git "$src" || return 1
+    chmod +x "$src/jwt_tool.py"
+    ln -sf "$src/jwt_tool.py" /usr/local/bin/jwt_tool
 }
 
-FUZZING_TOOLS () {
-	#ffuf
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${RED}"ffuf installation in progress ...";
-	go install github.com/ffuf/ffuf@latest > /dev/null 2>&1 && ln -s ~/go/bin/ffuf /usr/local/bin/;
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${GREEN}"ffuf installation is done !"; echo "";
-	#gobuster
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${RED}"Gobuster installation in progress ...";
-	go install github.com/OJ/gobuster/v3@latest > /dev/null 2>&1 && ln -s ~/go/bin/gobuster /usr/local/bin/;
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${GREEN}"Gobuster installation is done !"; echo "";
-	#wfuzz
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${RED}"wfuzz installation in progress ...";
-	apt-get install wfuzz -y > /dev/null 2>&1;
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${GREEN}"wfuzz installation is done !"; echo "";
-	#fuzzuli
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${RED}"fuzzuli installation in progress ...";
-	go install github.com/musana/fuzzuli@latest > /dev/null 2>&1 && ln -s ~/go/bin/fuzzuli /usr/local/bin/;
-	echo -e ${BLUE}"[FUZZING TOOLS]" ${GREEN}"fuzzuli installation is done !"; echo "";
+# smuggler: single self-contained py3 script (stdlib only), symlink into PATH.
+install_smuggler() {
+    local src="$TOOLS_DIRECTORY/smuggler"
+    git_get https://github.com/defparam/smuggler.git "$src" || return 1
+    chmod +x "$src/smuggler.py"
+    ln -sf "$src/smuggler.py" /usr/local/bin/smuggler
 }
 
-PROTO_POLLUTION () {
-	#ppfuzz
-	echo -e ${BLUE}"[PROTOTYPE POLLUTION]" ${RED}"ppfuzz installation in progress ...";
-	cd /tmp && wget https://github.com/dwisiswant0/ppfuzz/releases/download/v"$PPFUZZVER"/ppfuzz-v"$PPFUZZVER"-x86_64-unknown-linux-musl.tar.gz > /dev/null 2>&1 && tar -zxvf ppfuzz-v"$PPFUZZVER"-x86_64-unknown-linux-musl.tar.gz > /dev/null 2>&1 && mv ppfuzz /usr/local/bin/ppfuzz;
-	echo -e ${BLUE}"[PROTOTYPE POLLUTION]" ${GREEN}"ppfuzz installation is done !"; echo "";
-	#ppmap
-	echo -e ${BLUE}"[PROTOTYPE POLLUTION]" ${RED}"ppmap installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/kleiton0x00/ppmap.git > /dev/null 2>&1 && cd ppmap && bash setup.sh > /dev/null 2>&1;
-	echo -e ${BLUE}"[PROTOTYPE POLLUTION]" ${GREEN}"ppmap installation is done !"; echo "";
+install_findomain() {
+    dl_asset "findomain/findomain" 'findomain-linux\.zip$' /tmp/findomain-linux.zip || return 1
+    unzip -o -q /tmp/findomain-linux.zip -d /tmp || return 1
+    install -m 0755 /tmp/findomain /usr/local/bin/findomain
 }
 
-LFI_TOOLS () {
-	#LFISuite
-	echo -e ${BLUE}"[LFI TOOLS]" ${RED}"LFISuite installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/D35m0nd142/LFISuite.git > /dev/null 2>&1;
-	echo -e ${BLUE}"[LFI TOOLS]" ${GREEN}"LFISuite installation is done !"; echo "";
+install_massdns() {
+    git_get https://github.com/blechschmidt/massdns.git "$TOOLS_DIRECTORY/massdns" || return 1
+    make -C "$TOOLS_DIRECTORY/massdns" || return 1
+    ln -sf "$TOOLS_DIRECTORY/massdns/bin/massdns" /usr/local/bin/massdns
 }
 
-SSRF_TOOLS () {
-	#SSRFmap
-	echo -e ${BLUE}"[SSRF TOOLS]" ${RED}"SSRFmap installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/swisskyrepo/SSRFmap > /dev/null 2>&1 && cd SSRFmap && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[SSRF TOOLS]" ${GREEN}"SSRFmap installation is done !"; echo "";
-	#Gopherus
-	echo -e ${BLUE}"[SSRF TOOLS]" ${RED}"Gopherus installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/tarunkant/Gopherus.git > /dev/null 2>&1 && cd Gopherus && chmod +x install.sh && ./install.sh > /dev/null 2>&1;
-	echo -e ${BLUE}"[SSRF TOOLS]" ${GREEN}"Gopherus installation is done !"; echo "";
-	#Interactsh
-	echo -e ${BLUE}"[SSRF TOOLS]" ${RED}"Interactsh installation in progress ...";
-	go install -v github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest > /dev/null 2>&1 && ln -s ~/go/bin/interactsh-client /usr/local/bin/;
-	echo -e ${BLUE}"[SSRF TOOLS]" ${GREEN}"Interactsh installation is done !"; echo "";
-	#AutoSSRF
-	echo -e ${BLUE}"[SSRF TOOLS]" ${RED}"AutoSSRF installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/Th0h0/autossrf.git > /dev/null 2>&1 && cd autossrf && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[SSRF TOOLS]" ${GREEN}"AutoSSRF installation is done !"; echo "";
+install_masscan() {
+    git_get https://github.com/robertdavidgraham/masscan.git "$TOOLS_DIRECTORY/masscan" || return 1
+    make -C "$TOOLS_DIRECTORY/masscan" -j"$(nproc)" || return 1
+    install -m 0755 "$TOOLS_DIRECTORY/masscan/bin/masscan" /usr/local/bin/masscan
 }
 
-SSTI_TOOLS () {
-	#tplmap
-	echo -e ${BLUE}"[SSTI TOOLS]" ${RED}"tplmap installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/epinna/tplmap.git > /dev/null 2>&1 && cd tplmap && pip install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[SSTI TOOLS]" ${GREEN}"tplmap installation is done !"; echo "";
+install_x8() {
+    dl_asset "Sh1Yo/x8" 'x86_64-linux-x8\.gz$' /tmp/x8.gz || return 1
+    gzip -df /tmp/x8.gz || return 1
+    install -m 0755 /tmp/x8 /usr/local/bin/x8
 }
 
-API_TOOLS () {
-	#Kiterunner
-	echo -e ${BLUE}"[API TOOLS]" ${RED}"Kiterunner installation in progress ...";
-	cd /tmp && wget https://github.com/assetnote/kiterunner/releases/download/v"$KITERUNNERVER"/kiterunner_"$KITERUNNERVER"_linux_amd64.tar.gz > /dev/null 2>&1 && tar xvf kiterunner_"$KITERUNNERVER"_linux_amd64.tar.gz > /dev/null 2>&1 && mv kr /usr/local/bin;
-	cd $TOOLS_DIRECTORY && mkdir -p kiterunner-wordlists && cd kiterunner-wordlists && wget https://wordlists-cdn.assetnote.io/data/kiterunner/routes-large.kite.tar.gz > /dev/null 2>&1 && wget https://wordlists-cdn.assetnote.io/data/kiterunner/routes-small.kite.tar.gz > /dev/null 2>&1 && for f in *.tar.gz; do tar xf "$f"; rm -Rf "$f"; done
-	echo -e ${BLUE}"[API TOOLS]" ${GREEN}"Kiterunner installation is done !"; echo "";
+install_linkfinder() {
+    git_get https://github.com/GerbenJavado/LinkFinder.git "$TOOLS_DIRECTORY/LinkFinder" || return 1
+    pip_install "$TOOLS_DIRECTORY/LinkFinder"
 }
 
-XSS_TOOLS () {
-	#Dalfox
-	echo -e ${BLUE}"[XSS]" ${RED}"Dalfox installation in progress ...";
-	go install github.com/hahwul/dalfox/v2@latest > /dev/null 2>&1 && ln -s ~/go/bin/dalfox /usr/local/bin/;
-	echo -e ${BLUE}"[XSS]" ${GREEN}"Dalfox installation is done !"; echo "";
-	#XSStrike
-	echo -e ${BLUE}"[XSS]" ${RED}"XSStrike installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/s0md3v/XSStrike > /dev/null 2>&1 && cd XSStrike && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[XSS]" ${GREEN}"XSStrike installation is done !"; echo "";
-	#kxss
-	echo -e ${BLUE}"[XSS]" ${RED}"kxss installation in progress ...";
-	go install github.com/tomnomnom/hacks/kxss@latest > /dev/null 2>&1 && ln -s ~/go/bin/kxss /usr/local/bin/;
-	echo -e ${BLUE}"[XSS]" ${GREEN}"kxss installation is done !"; echo "";
+install_ppfuzz() {
+    dl_asset "dwisiswant0/ppfuzz" 'x86_64-unknown-linux-musl\.tar\.gz$' /tmp/ppfuzz.tar.gz || return 1
+    tar -xzf /tmp/ppfuzz.tar.gz -C /tmp || return 1
+    install -m 0755 /tmp/ppfuzz /usr/local/bin/ppfuzz
 }
 
-SQLI_TOOLS () {
-	#SQLmap
-	echo -e ${BLUE}"[SQL Injection]" ${RED}"SQLMap installation in progress ...";
-	apt-get install -y sqlmap > /dev/null 2>&1
-	echo -e ${BLUE}"[SQL Injection]" ${GREEN}"SQLMap installation is done !"; echo "";
-	#NoSQLMap
-	echo -e ${BLUE}"[SQL Injection]" ${RED}"NoSQLMap installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/codingo/NoSQLMap.git > /dev/null 2>&1 && cd NoSQLMap && python setup.py install > /dev/null 2>&1;
-	echo -e ${BLUE}"[SQL Injection]" ${GREEN}"NoSQLMap installation is done !"; echo "";
+# ppmap's setup.sh no longer compiles against current chromedp and relies on
+# sudo; upstream publishes a prebuilt Linux binary, use it (needs chromium).
+install_ppmap() {
+    dl_asset "kleiton0x00/ppmap" '/ppmap$' /tmp/ppmap || return 1
+    install -m 0755 /tmp/ppmap /usr/local/bin/ppmap
 }
 
-VULNS_SCANNER () {
-	#Nuclei + nuclei templates
-	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${RED}"Nuclei installation in progress ...";
-	go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest > /dev/null 2>&1 && ln -s ~/go/bin/nuclei /usr/local/bin/;
-	nuclei -update-templates > /dev/null 2>&1;
-	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${GREEN}"Nuclei installation is done !"; echo "";
-	#Jaeles
-	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${RED}"Jaeles installation in progress ...";
-	GO111MODULE=on go install github.com/jaeles-project/jaeles@latest  > /dev/null 2>&1 && ln -s ~/go/bin/jaeles /usr/local/bin/;
-	cd $TOOLS_DIRECTORY && git clone https://github.com/jaeles-project/jaeles-signatures.git > /dev/null 2>&1;
-	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${GREEN}"Jaeles installation is done !"; echo "";
-	#Nikto
-	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${RED}"Nikto installation in progress ...";
-	apt-get install -y nikto > /dev/null 2>&1;
-	echo -e ${BLUE}"[VULNERABILITY SCANNER]" ${GREEN}"Nikto installation is done !"; echo "";
+install_gopherus() {
+    # Python3 maintained fork of tarunkant/Gopherus
+    git_pip https://github.com/Esonhugh/Gopherus3.git "$TOOLS_DIRECTORY/Gopherus3"
 }
 
-CMS_SCANNER () {
-	#WPScan
-	echo -e ${BLUE}"[CMS SCANNER]" ${RED}"WPScan installation in progress ...";
-	gem install wpscan > /dev/null 2>&1;
-	echo -e ${BLUE}"[CMS SCANNER]" ${GREEN}"WPScan installation is done !"; echo "";
-	#Droopescan
-	echo -e ${BLUE}"[CMS SCANNER]" ${RED}"Droopescan installation in progress ...";
-	pip3 install droopescan > /dev/null 2>&1;
-	echo -e ${BLUE}"[CMS SCANNER]" ${GREEN}"Droopescan installation is done !"; echo "";
-	#AEM-Hacking
-	echo -e ${BLUE}"[CMS SCANNER]" ${RED}"AEM-Hacking installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/0ang3el/aem-hacker.git > /dev/null 2>&1 && cd aem-hacker && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[CMS SCANNER]" ${GREEN}"AEM-Hacking installation is done !"; echo "";
+install_kiterunner() {
+    dl_asset "assetnote/kiterunner" 'linux_amd64\.tar\.gz$' /tmp/kiterunner.tar.gz || return 1
+    tar -xzf /tmp/kiterunner.tar.gz -C /tmp || return 1
+    install -m 0755 /tmp/kr /usr/local/bin/kr
+    local wl="$TOOLS_DIRECTORY/kiterunner-wordlists"
+    mkdir -p "$wl"
+    ( cd "$wl" \
+        && curl -fsSL -O https://wordlists-cdn.assetnote.io/data/kiterunner/routes-large.kite.tar.gz \
+        && curl -fsSL -O https://wordlists-cdn.assetnote.io/data/kiterunner/routes-small.kite.tar.gz \
+        && for f in *.kite.tar.gz; do tar xf "$f" && rm -f "$f"; done )
 }
 
-WORDLISTS () {
-	echo -e ${BLUE}"[WORDLISTS]" ${RED}"SecLists installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/danielmiessler/SecLists.git > /dev/null 2>&1;
-	echo -e ${BLUE}"[WORDLISTS]" ${GREEN}"SecLists installation is done !"; echo "";
-	echo -e ${BLUE}"[WORDLISTS]" ${RED}"OneListForAll installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/six2dez/OneListForAll > /dev/null 2>&1;
-	echo -e ${BLUE}"[WORDLISTS]" ${GREEN}"OneListForAll installation is done !"; echo "";
+install_nuclei() {
+    go_install nuclei github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest || return 1
+    nuclei -update-templates || true
+}
+
+# Upstream build.sh runs the whole test-suite and 4 cross-compiles; build
+# the Linux binary directly and mirror what install.sh does (config dir).
+install_earlybird() {
+    local src="$TOOLS_DIRECTORY/earlybird"
+    git_get https://github.com/americanexpress/earlybird.git "$src" || return 1
+    ( cd "$src" && go build -o /usr/local/bin/go-earlybird . ) || return 1
+    mkdir -p "$HOME/.go-earlybird"
+    cp -a "$src/config/." "$HOME/.go-earlybird/"
+    cp "$src/.ge_ignore" "$HOME/.ge_ignore"
+}
+
+# unKover is a single self-contained bash script (bash + curl only).
+install_unkover() {
+    git_get https://github.com/BruteLogic/unKover.git "$TOOLS_DIRECTORY/unKover" || return 1
+    install -m 0755 "$TOOLS_DIRECTORY/unKover/unkover" /usr/local/bin/unkover
+}
+
+# gobypass403 / depx ship a go.mod with `replace` directives, so `go install`
+# is not allowed by Go; use the prebuilt release binaries instead.
+install_gobypass403() {
+    dl_asset "slicingmelon/gobypass403" 'linux_amd64$' /tmp/gobypass403 || return 1
+    install -m 0755 /tmp/gobypass403 /usr/local/bin/gobypass403
+}
+
+install_depx() {
+    dl_asset "projectdiscovery/depx" 'linux_amd64\.zip$' /tmp/depx.zip || return 1
+    rm -rf /tmp/depx-extract
+    unzip -o -q /tmp/depx.zip -d /tmp/depx-extract || return 1
+    install -m 0755 /tmp/depx-extract/depx /usr/local/bin/depx
+}
+
+# =============================================================================
+#  Environment
+# =============================================================================
+
+detect_os() {
+    OS="$(lsb_release -i 2>/dev/null | cut -d ':' -f2 | tr -d '\t ')"
+    if [ -z "$OS" ] && [ -f /etc/os-release ]; then
+        OS="$( . /etc/os-release; echo "${ID^}" )"
+    fi
+    case "$OS" in
+        Debian|Kali|Ubuntu|Linuxmint) : ;;
+        *) log_warn "OS '$OS' not officially tested — proceeding on a Debian/apt basis." ;;
+    esac
+    ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+    case "$ARCH" in
+        amd64|x86_64) : ;;
+        *) log_warn "Architecture '$ARCH' is not supported: Go and prebuilt release binaries are fetched for amd64 only." ;;
+    esac
+}
+
+ENVIRONMENT() {
+    section "ENVIRONMENT"
+    local common="python3 python3-pip python3-venv unzip make gcc curl wget git jq \
+build-essential libpcap-dev libcurl4-openssl-dev libxml2 libxml2-dev libxslt1-dev \
+ruby-dev ruby libgmp-dev zlib1g-dev"
+    local chromium_pkg="chromium"
+    [ "$OS" = "Ubuntu" ] && chromium_pkg="chromium-browser"
+
+    log_info "APT — updating package index ($OS) ..."
+    apt-get update -y >>"$LOGFILE" 2>&1
+    # shellcheck disable=SC2086
+    run "APT base packages" apt_install $common
+    run "Chromium ($chromium_pkg)" apt_install "$chromium_pkg"
+
+    # Colored bash prompt
+    sed -i '/^#.*force_color_prompt/s/^#//' ~/.bashrc 2>/dev/null || true
+
+    run "Golang" install_golang
+}
+
+# =============================================================================
+#  Tool categories
+# =============================================================================
+
+SUBDOMAINS_ENUMERATION() {
+    section "SUBDOMAINS ENUMERATION"
+    run "Subfinder"         go_install subfinder         github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+    run "Assetfinder"       go_install assetfinder       github.com/tomnomnom/assetfinder@latest
+    run "Findomain"         install_findomain
+    run "Github-subdomains" go_install github-subdomains  github.com/gwen001/github-subdomains@latest
+    run "Gitlab-subdomains" go_install gitlab-subdomains  github.com/gwen001/gitlab-subdomains@latest
+    run "Amass"             go_install amass             github.com/owasp-amass/amass/v4/cmd/amass@latest
+}
+
+DNS_RESOLVER() {
+    section "DNS RESOLVER"
+    run "MassDNS"    install_massdns
+    run "dnsx"       go_install dnsx       github.com/projectdiscovery/dnsx/cmd/dnsx@latest
+    run "PureDNS"    go_install puredns    github.com/d3mondev/puredns/v2@latest
+    run "shuffledns" go_install shuffledns github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest
+    run "dnsgen"     pip_install dnsgen
+}
+
+HTTP_PROBE() {
+    section "HTTP PROBE"
+    run "httpx"    go_install httpx    github.com/projectdiscovery/httpx/cmd/httpx@latest
+    run "httprobe" go_install httprobe github.com/tomnomnom/httprobe@latest
+}
+
+VISUAL_RECON() {
+    section "VISUAL RECON"
+    run "Gowitness"  go_install gowitness github.com/sensepost/gowitness@latest
+    run "AIquatone"  go_install aiquatone github.com/supr4s/aiquatone@latest
+}
+
+NETWORK_SCANNER() {
+    section "NETWORK SCANNER"
+    run "Nmap"    apt_install nmap
+    run "Masscan" install_masscan
+    run "Naabu"   go_install naabu   github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+    run "Smap"    go_install smap    github.com/s0md3v/smap/cmd/smap@latest
+    run "mapcidr" go_install mapcidr github.com/projectdiscovery/mapcidr/cmd/mapcidr@latest
+}
+
+WEB_CRAWLING() {
+    section "WEB CRAWLING"
+    run "Gospider"  go_install gospider  github.com/jaeles-project/gospider@latest
+    run "Hakrawler" go_install hakrawler github.com/hakluke/hakrawler@latest
+    run "Katana"    go_install katana    github.com/projectdiscovery/katana/cmd/katana@latest
+    run "cariddi"   go_install cariddi   github.com/edoardottt/cariddi/cmd/cariddi@latest
+}
+
+HTTP_PARAMETER() {
+    section "HTTP PARAMETER DISCOVERY"
+    run "Arjun"       pip_install arjun
+    run "x8"          install_x8
+    run "ParamSpider" pip_install "git+https://github.com/devanshbatham/ParamSpider.git"
+}
+
+JS_HUNTING() {
+    section "JS FILES HUNTING"
+    run "LinkFinder"   install_linkfinder
+    run "SecretFinder" git_pip https://github.com/m4ll0k/SecretFinder.git "$TOOLS_DIRECTORY/SecretFinder"
+    run "subjs"        go_install subjs github.com/lc/subjs@latest
+    run "xnLinkFinder" pip_install xnLinkFinder
+    run "jsluice"      go_install jsluice github.com/BishopFox/jsluice/cmd/jsluice@latest
+}
+
+BYPASS_40X() {
+    section "BYPASS 40X"
+    run "dontgo403"   go_install dontgo403 github.com/devploit/dontgo403@latest
+    run "gobypass403" install_gobypass403
+    run "unKover"     install_unkover
+}
+
+DEPENDENCY_CONFUSION() {
+    section "DEPENDENCY CONFUSION / SUPPLY CHAIN"
+    run "confused"  go_install confused  github.com/visma-prodsec/confused@latest
+    run "depx"      install_depx
+    run "dustilock" go_install dustilock github.com/checkmarx/dustilock@latest
+}
+
+CORS_TOOLS() {
+    section "CORS MISCONFIGURATION"
+    run "Corsy"      git_pip https://github.com/s0md3v/Corsy.git "$TOOLS_DIRECTORY/Corsy"
+    run "CORScanner" pip_install corscanner
+}
+
+FUZZING_TOOLS() {
+    section "FUZZING TOOLS"
+    run "ffuf"     go_install ffuf     github.com/ffuf/ffuf/v2@latest
+    run "Gobuster" go_install gobuster github.com/OJ/gobuster/v3@latest
+    run "wfuzz"    apt_install wfuzz
+    run "fuzzuli"  go_install fuzzuli  github.com/musana/fuzzuli@latest
+}
+
+PROTO_POLLUTION() {
+    section "PROTOTYPE POLLUTION"
+    run "ppfuzz" install_ppfuzz
+    run "ppmap"  install_ppmap
+}
+
+SSRF_TOOLS() {
+    section "SSRF TOOLS"
+    run "SSRFmap"    git_pip https://github.com/swisskyrepo/SSRFmap.git "$TOOLS_DIRECTORY/SSRFmap"
+    run "Gopherus3"  install_gopherus
+    run "Interactsh" go_install interactsh-client github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
+    run "AutoSSRF"   git_pip https://github.com/Th0h0/autossrf.git "$TOOLS_DIRECTORY/autossrf"
+    run "surf"       go_install surf github.com/assetnote/surf/cmd/surf@latest
+}
+
+SSTI_TOOLS() {
+    section "SSTI TOOLS"
+    run "SSTImap" git_pip https://github.com/vladko312/SSTImap.git "$TOOLS_DIRECTORY/SSTImap"
+}
+
+API_TOOLS() {
+    section "API TOOLS"
+    run "Kiterunner" install_kiterunner
+}
+
+XSS_TOOLS() {
+    section "XSS"
+    run "Dalfox"   go_install dalfox github.com/hahwul/dalfox/v2@latest
+    run "XSStrike" git_pip https://github.com/s0md3v/XSStrike.git "$TOOLS_DIRECTORY/XSStrike"
+    run "kxss"     go_install kxss   github.com/tomnomnom/hacks/kxss@latest
+}
+
+SQLI_TOOLS() {
+    section "SQL INJECTION"
+    run "SQLMap" apt_install sqlmap
+    run "nosqli" go_install nosqli github.com/Charlie-belmer/nosqli@latest
+    run "Ghauri" pip_install "git+https://github.com/r0oth3x49/ghauri.git"
+}
+
+VULNS_SCANNER() {
+    section "VULNERABILITY SCANNER"
+    run "Nuclei" install_nuclei
+    run "Nikto"  apt_install nikto
+}
+
+CMS_SCANNER() {
+    section "CMS SCANNER"
+    run "WPScan"     gem install wpscan
+    run "droopescan" pip_install droopescan
+    run "AEM-hacker" git_pip https://github.com/0ang3el/aem-hacker.git "$TOOLS_DIRECTORY/aem-hacker"
+    run "hopgoblin"  install_hopgoblin
+}
+
+WORDLISTS() {
+    section "WORDLISTS"
+    run "SecLists"      git_get https://github.com/danielmiessler/SecLists.git "$TOOLS_DIRECTORY/SecLists"
+    run "OneListForAll" git_get https://github.com/six2dez/OneListForAll.git "$TOOLS_DIRECTORY/OneListForAll"
+    run "commonspeak2"  install_commonspeak2
 }
 
 GIT_HUNTING() {
-	#GitDorker
-	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"GitDorker installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/obheda12/GitDorker.git > /dev/null 2>&1 && cd GitDorker && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"GitDorker installation is done !"; echo "";
-	#gitGraber
-	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"gitGraber installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/hisxo/gitGraber.git > /dev/null 2>&1 && cd gitGraber && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"gitGraber installation is done !"; echo "";
-	#GitHacker
-	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"GitHacker installation in progress ...";
-	pip3 install GitHacker > /dev/null 2>&1;
-	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"GitHacker installation is done !"; echo "";
-	#GitTools
-	echo -e ${BLUE}"[GIT HUNTING]" ${RED}"GitTools installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/internetwache/GitTools.git > /dev/null 2>&1;
-	echo -e ${BLUE}"[GIT HUNTING]" ${GREEN}"GitTools installation is done !"; echo "";
+    section "GIT HUNTING"
+    run "GitDorker" git_pip https://github.com/obheda12/GitDorker.git "$TOOLS_DIRECTORY/GitDorker"
+    run "gitGraber" git_pip https://github.com/hisxo/gitGraber.git "$TOOLS_DIRECTORY/gitGraber"
+    run "GitHacker" pip_install GitHacker
+    run "GitTools"  git_get https://github.com/internetwache/GitTools.git "$TOOLS_DIRECTORY/GitTools"
 }
 
 SENSITIVE_FINDING() {
-	#DumpsterDiver
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${RED}"gitGraber installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/securing/DumpsterDiver.git > /dev/null 2>&1 && cd DumpsterDiver && pip3 install -r requirements.txt > /dev/null 2>&1;
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${GREEN}"gitGraber installation is done !"; echo "";
-	#EarlyBird
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${RED}"EarlyBird installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/americanexpress/earlybird.git > /dev/null 2>&1 && cd earlybird && ./build.sh > /dev/null 2>&1 && ./install.sh > /dev/null 2>&1;
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${GREEN}"EarlyBird installation is done !"; echo "";
-	#Ripgrep
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${RED}"Ripgrep installation in progress ...";
-	apt-get install -y ripgrep > /dev/null 2>&1
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${GREEN}"Ripgrep installation is done !" ${RESTORE}; echo "";
-	#Trufflehog
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${RED}"Trufflehog installation in progress ...";
-	cd /tmp && wget https://github.com/trufflesecurity/trufflehog/releases/download/v"$TRUFFLEHOGVER"/trufflehog_"$TRUFFLEHOGVER"_linux_amd64.tar.gz > /dev/null 2>&1 && tar -zxvf trufflehog_"$TRUFFLEHOGVER"_linux_amd64.tar.gz > /dev/null 2>&1 && mv trufflehog /usr/local/bin/trufflehog;
-	echo -e ${BLUE}"[SENSITIVE FINDING TOOLS]" ${GREEN}"Trufflehog installation is done !" ${RESTORE}; echo "";
+    section "SENSITIVE FINDING TOOLS"
+    run "EarlyBird"     install_earlybird
+    run "Ripgrep"       apt_install ripgrep
+    run "Trufflehog"    go_install trufflehog github.com/trufflesecurity/trufflehog/v3@latest
+    run "gitleaks"      go_install gitleaks   github.com/zricethezav/gitleaks/v8@latest
 }
 
-USEFUL_TOOLS () {
-	#getallurls
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"getallurls installation in progress ...";
-	go install github.com/lc/gau/v2/cmd/gau@latest > /dev/null 2>&1 && ln -s ~/go/bin/gau /usr/local/bin/;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"getallurls installation is done !"; echo "";
-	#anti-burl
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"anti-burl installation in progress ...";
-	go install github.com/tomnomnom/hacks/anti-burl@latest > /dev/null 2>&1 && ln -s ~/go/bin/anti-burl /usr/local/bin/;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"anti-burl installation is done !"; echo "";
-	#unfurl
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"unfurl installation in progress ...";
-	go install github.com/tomnomnom/unfurl@latest > /dev/null 2>&1 && ln -s ~/go/bin/unfurl /usr/local/bin/;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"unfurl installation is done !"; echo "";
-	#anew
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"anew installation in progress ...";
-	go install github.com/tomnomnom/anew@latest > /dev/null 2>&1 && ln -s ~/go/bin/anew /usr/local/bin/;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"anew installation is done !"; echo "";
-	#gron
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"gron installation in progress ...";
-	go install github.com/tomnomnom/gron@latest > /dev/null 2>&1 && ln -s ~/go/bin/gron /usr/local/bin/;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"gron installation is done !"; echo "";
-	#qsreplace
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"qsreplace installation in progress ...";
-	go install github.com/tomnomnom/qsreplace@latest > /dev/null 2>&1 && ln -s ~/go/bin/qsreplace /usr/local/bin/;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"qsreplace installation is done !"; echo "";
-	#Interlace
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Interlace installation in progress ...";
-	cd $TOOLS_DIRECTORY && git clone https://github.com/codingo/Interlace.git > /dev/null 2>&1 && cd Interlace && python3 setup.py install > /dev/null 2>&1;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Interlace installation is done !"; echo "";
-	#Jq
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"jq installation in progress ...";
-	apt-get install -y jq > /dev/null 2>&1;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"jq installation is done !"; echo "";
-	#Tmux
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Tmux installation in progress ...";
-	apt-get install tmux -y > /dev/null 2>&1;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Tmux installation is done !"; echo "";
-	#Uro
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${RED}"Uro installation in progress ...";
-	pip3 install uro > /dev/null 2>&1;
-	echo -e ${BLUE}"[USEFUL TOOLS]" ${GREEN}"Uro installation is done !" ${RESTORE}; echo "";
+USEFUL_TOOLS() {
+    section "USEFUL TOOLS"
+    run "getallurls"  go_install gau         github.com/lc/gau/v2/cmd/gau@latest
+    run "urlfinder"   go_install urlfinder   github.com/projectdiscovery/urlfinder/cmd/urlfinder@latest
+    run "anti-burl"   go_install anti-burl   github.com/tomnomnom/hacks/anti-burl@latest
+    run "unfurl"      go_install unfurl      github.com/tomnomnom/unfurl@latest
+    run "anew"        go_install anew        github.com/tomnomnom/anew@latest
+    run "gron"        go_install gron        github.com/tomnomnom/gron@latest
+    run "qsreplace"   go_install qsreplace   github.com/tomnomnom/qsreplace@latest
+    run "waybackurls" go_install waybackurls github.com/tomnomnom/waybackurls@latest
+    run "waymore"     pip_install waymore
+    run "gf"          go_install gf          github.com/tomnomnom/gf@latest
+    run "notify"      go_install notify      github.com/projectdiscovery/notify/cmd/notify@latest
+    run "jq"          apt_install jq
+    run "Tmux"        apt_install tmux
+    run "Uro"         pip_install uro
 }
 
-#ESSENTIALS
-ENVIRONMENT;
+SUBDOMAIN_TAKEOVER() {
+    section "SUBDOMAIN TAKEOVER"
+    run "subzy" go_install subzy github.com/PentestPad/subzy@latest
+}
 
-#RECON - 1
-SUBDOMAINS_ENUMERATION && DNS_RESOLVER && HTTP_PROBE && VISUAL_RECON && NETWORK_SCANNER;
+OPEN_REDIRECT() {
+    section "OPEN REDIRECT"
+    run "Oralyzer" pip_install oralyzer
+}
 
-#RECON - 2
-WEB_CRAWLING && HTTP_PARAMETER && JS_HUNTING;
+CRLF_INJECTION() {
+    section "CRLF INJECTION"
+    run "crlfuzz" go_install crlfuzz github.com/dwisiswant0/crlfuzz/cmd/crlfuzz@latest
+}
 
-#VULNS
-BYPASS_40X && CORS_TOOLS && FUZZING_TOOLS && PROTO_POLLUTION && LFI_TOOLS && SSRF_TOOLS && SSTI_TOOLS && API_TOOLS && XSS_TOOLS && SQLI_TOOLS;
+HTTP_SMUGGLING() {
+    section "HTTP REQUEST SMUGGLING"
+    run "smuggler" install_smuggler
+}
 
-#VULNS - GENERIC
-VULNS_SCANNER && CMS_SCANNER
+JWT_TOOLS() {
+    section "JWT"
+    run "jwt_tool" install_jwt_tool
+}
 
-#WORDLISTS
-WORDLISTS;
+# =============================================================================
+#  Main
+# =============================================================================
 
-#SENSITIVE STUFF
-GIT_HUNTING && SENSITIVE_FINDING;
+clear
+cat "$SCRIPT_DIR/banner/banner.txt" 2>/dev/null || true
+echo
+log_info "Logging to $LOGFILE"
 
-#IN ADDITION
-USEFUL_TOOLS;
+detect_os
+
+# ESSENTIALS
+ENVIRONMENT
+
+# RECON - 1
+SUBDOMAINS_ENUMERATION
+DNS_RESOLVER
+HTTP_PROBE
+VISUAL_RECON
+NETWORK_SCANNER
+SUBDOMAIN_TAKEOVER
+
+# RECON - 2
+WEB_CRAWLING
+HTTP_PARAMETER
+JS_HUNTING
+
+# VULNS
+BYPASS_40X
+CORS_TOOLS
+FUZZING_TOOLS
+PROTO_POLLUTION
+SSRF_TOOLS
+SSTI_TOOLS
+API_TOOLS
+XSS_TOOLS
+SQLI_TOOLS
+OPEN_REDIRECT
+CRLF_INJECTION
+HTTP_SMUGGLING
+JWT_TOOLS
+
+# VULNS - GENERIC
+VULNS_SCANNER
+CMS_SCANNER
+DEPENDENCY_CONFUSION
+
+# WORDLISTS
+WORDLISTS
+
+# SENSITIVE STUFF
+GIT_HUNTING
+SENSITIVE_FINDING
+
+# IN ADDITION
+USEFUL_TOOLS
+
+# print_summary runs automatically via the EXIT trap
