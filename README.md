@@ -60,8 +60,8 @@ git clone https://github.com/supr4s/WebHackingTools && cd WebHackingTools
 docker build -t webhackingtools .
 ```
 
-> Expect a large image (several GB): it compiles ~100 tools and ships SecLists
-> and other wordlists. The build is long.
+> Expect a large image (several GB): it compiles ~100 tools and ships
+> wordlists. The build is long.
 
 A build makes only a handful of GitHub API calls, so no token is needed. If you
 rebuild many times in an hour (or build behind a shared IP) and hit the API rate
@@ -216,7 +216,6 @@ re-attach later with `docker attach webhackingtools`.
 
 ### Vulns - Scanner
 
-- [Nikto](https://github.com/sullo/nikto)
 - [Nuclei](https://github.com/projectdiscovery/nuclei)
 
 ### CMS Scanner
@@ -235,7 +234,6 @@ re-attach later with `docker attach webhackingtools`.
 ### Wordlists
 
 - [commonspeak2](https://github.com/assetnote/commonspeak2) *
-- [SecLists](https://github.com/danielmiessler/SecLists)
 - [OneListForAll](https://github.com/six2dez/OneListForAll)
 
 ### Git hunting

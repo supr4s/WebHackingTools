@@ -229,16 +229,6 @@ install_smuggler() {
     ln -sf "$src/smuggler.py" /usr/local/bin/smuggler
 }
 
-# Nikto lives in Debian non-free (not enabled by default), so apt can't find it.
-# It's a self-contained Perl script — install it from source.
-install_nikto() {
-    local src="$TOOLS_DIRECTORY/nikto"
-    git_get https://github.com/sullo/nikto.git "$src" || return 1
-    [ -f "$src/program/nikto.conf" ] || cp "$src/program/nikto.conf.default" "$src/program/nikto.conf"
-    chmod +x "$src/program/nikto.pl"
-    ln -sf "$src/program/nikto.pl" /usr/local/bin/nikto
-}
-
 install_findomain() {
     dl_asset "findomain/findomain" 'findomain-linux\.zip$' /tmp/findomain-linux.zip || return 1
     unzip -o -q /tmp/findomain-linux.zip -d /tmp || return 1
@@ -520,7 +510,6 @@ SQLI_TOOLS() {
 VULNS_SCANNER() {
     section "VULNERABILITY SCANNER"
     run "Nuclei" install_nuclei
-    run "Nikto"  install_nikto
 }
 
 CMS_SCANNER() {
@@ -533,7 +522,6 @@ CMS_SCANNER() {
 
 WORDLISTS() {
     section "WORDLISTS"
-    run "SecLists"      git_get https://github.com/danielmiessler/SecLists.git "$TOOLS_DIRECTORY/SecLists"
     run "OneListForAll" git_get https://github.com/six2dez/OneListForAll.git "$TOOLS_DIRECTORY/OneListForAll"
     run "commonspeak2"  install_commonspeak2
 }
