@@ -51,6 +51,11 @@ export GOPATH="${GOPATH:-$HOME/go}"
 export GOBIN="$GOPATH/bin"
 mkdir -p "$GOBIN"
 export PATH="/usr/local/go/bin:$GOBIN:$PATH"
+# /tmp is often a small, RAM-backed tmpfs; compiling big Go tools (nuclei, tlsx)
+# there triggers "no space left on device". Put Go's build scratch on a
+# disk-backed dir instead.
+export GOTMPDIR="${GOTMPDIR:-/var/tmp/wht-go-build}"
+mkdir -p "$GOTMPDIR"
 
 # --- Logging -----------------------------------------------------------------
 LOGFILE="$SCRIPT_DIR/install_$(date +%Y%m%d_%H%M%S).log"
@@ -576,6 +581,22 @@ JWT_TOOLS() {
 }
 
 # =============================================================================
+#  Cleanup
+# =============================================================================
+
+# Go's build cache ($GOCACHE) and module cache ($GOPATH/pkg/mod) can hold several
+# GB after building ~45 tools. The installed binaries live in /usr/local/bin, so
+# these caches are pure disk cost afterwards — reclaim them.
+reclaim_disk() {
+    section "CLEANUP"
+    log_info "Reclaiming disk space (Go build/module caches, scratch) ..."
+    go clean -cache    >>"$LOGFILE" 2>&1 || true
+    go clean -modcache >>"$LOGFILE" 2>&1 || true
+    rm -rf "$GOTMPDIR" /tmp/go.tar.gz >>"$LOGFILE" 2>&1 || true
+    log_ok "Disk cleanup done"
+}
+
+# =============================================================================
 #  Main
 # =============================================================================
 
@@ -631,5 +652,8 @@ SENSITIVE_FINDING
 
 # IN ADDITION
 USEFUL_TOOLS
+
+# FREE DISK SPACE
+reclaim_disk
 
 # print_summary runs automatically via the EXIT trap
