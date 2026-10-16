@@ -56,14 +56,12 @@ git clone https://github.com/supr4s/WebHackingTools && cd WebHackingTools
 docker build -t webhackingtools .
 ```
 
-To avoid the GitHub API rate limit during the build, pass a token:
-
-```
-docker build --build-arg GITHUB_TOKEN=ghp_xxx -t webhackingtools .
-```
-
 > Expect a large image (several GB): it compiles ~100 tools and ships SecLists
 > and other wordlists. The build is long.
+
+A build makes only a handful of GitHub API calls, so no token is needed. If you
+rebuild many times in an hour (or build behind a shared IP) and hit the API rate
+limit, you can pass one: `docker build --build-arg GITHUB_TOKEN=ghp_xxx .`
 
 Run it:
 
