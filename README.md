@@ -149,7 +149,7 @@ re-attach later with `docker attach webhackingtools`.
 
 ### Bypass 40X
 
-- [dontgo403](https://github.com/devploit/dontgo403)
+- [nomore403](https://github.com/devploit/nomore403)
 - [gobypass403](https://github.com/slicingmelon/gobypass403) *
 - [unKover](https://github.com/BruteLogic/unKover) *
 

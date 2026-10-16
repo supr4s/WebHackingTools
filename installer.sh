@@ -298,6 +298,14 @@ install_unkover() {
     install -m 0755 "$TOOLS_DIRECTORY/unKover/unkover" /usr/local/bin/unkover
 }
 
+# trufflehog's go.mod now carries `replace` directives, so `go install` is
+# refused by Go; use the official release binary instead.
+install_trufflehog() {
+    dl_asset "trufflesecurity/trufflehog" 'linux_amd64\.tar\.gz$' /tmp/trufflehog.tar.gz || return 1
+    tar -xzf /tmp/trufflehog.tar.gz -C /tmp trufflehog || return 1
+    install -m 0755 /tmp/trufflehog /usr/local/bin/trufflehog
+}
+
 # gobypass403 / depx ship a go.mod with `replace` directives, so `go install`
 # is not allowed by Go; use the prebuilt release binaries instead.
 install_gobypass403() {
@@ -422,7 +430,7 @@ JS_HUNTING() {
 
 BYPASS_40X() {
     section "BYPASS 40X"
-    run "dontgo403"   go_install dontgo403 github.com/devploit/dontgo403@latest
+    run "nomore403"   go_install nomore403 github.com/devploit/nomore403@latest
     run "gobypass403" install_gobypass403
     run "unKover"     install_unkover
 }
@@ -520,7 +528,7 @@ SENSITIVE_FINDING() {
     section "SENSITIVE FINDING TOOLS"
     run "EarlyBird"     install_earlybird
     run "Ripgrep"       apt_install ripgrep
-    run "Trufflehog"    go_install trufflehog github.com/trufflesecurity/trufflehog/v3@latest
+    run "Trufflehog"    install_trufflehog
     run "gitleaks"      go_install gitleaks   github.com/zricethezav/gitleaks/v8@latest
 }
 
