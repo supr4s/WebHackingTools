@@ -46,24 +46,41 @@ Requirements: `amd64` only (Go toolchain and prebuilt release binaries are fetch
 
 ## 🐳 Docker
 
-A Docker version is available, see [https://hub.docker.com/r/supr4s/webhackingtools](https://hub.docker.com/r/supr4s/webhackingtools)
+The image is built straight from `installer.sh` using the provided
+[`Dockerfile`](Dockerfile) (base: Debian 13), so it always matches this repo.
+
+Build it:
 
 ```
-docker pull supr4s/webhackingtools
-docker run --name webhackingtools -it supr4s/webhackingtools
+git clone https://github.com/supr4s/WebHackingTools && cd WebHackingTools
+docker build -t webhackingtools .
 ```
 
-To leave the container but leave it running:
+To avoid the GitHub API rate limit during the build, pass a token:
 
 ```
-ctrl + p and ctrl + q 
+docker build --build-arg GITHUB_TOKEN=ghp_xxx -t webhackingtools .
 ```
 
-To re-attach to the container: 
+> Expect a large image (several GB): it compiles ~100 tools and ships SecLists
+> and other wordlists. The build is long.
+
+Run it:
 
 ```
-docker attach webhackingtools
+docker run --name webhackingtools -it webhackingtools
 ```
+
+Tools that take screenshots (AIquatone, Gowitness, ppmap) drive Chromium and
+need an extra flag in a container:
+
+```
+docker run --name webhackingtools --cap-add=SYS_ADMIN -it webhackingtools
+# then pass --no-sandbox to the screenshotting tool
+```
+
+Detach without stopping the container with `ctrl + p` then `ctrl + q`, and
+re-attach later with `docker attach webhackingtools`.
 
 
 ## Available tools list
