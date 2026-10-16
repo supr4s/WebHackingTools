@@ -1,5 +1,9 @@
 # WebHackingTools
 
+________
+**NOTE** : Initially coded 100% by hand, I used AI as an assistant for the latest version to facilitate deployment, code review, and the addition of new features.
+______________
+
 Automatically install some web hacking/bug bounty tools for your VPS/hacking station.
 
 - **Idempotent**: safe to re-run, every tool is refreshed to its latest version (repos pulled, Go tools rebuilt, GitHub releases re-resolved).
